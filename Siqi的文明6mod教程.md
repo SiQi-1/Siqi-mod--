@@ -177,9 +177,9 @@ function Refresh()
 	Controls.UnitGrid:SetHide(true)
     else
 	Controls.UnitGrid:SetHide(false)
-        local disabled, str = IsButtonDisabled()
+    local disabled, str = IsButtonDisabled()
 	Controls.UnitButton:SetDisabled(disabled)
-        Controls.UnitButton:SetToolTipString(str)
+    Controls.UnitButton:SetToolTipString(str)
     end
 end
 -- 单位移动完成时
@@ -482,7 +482,174 @@ end
 
 #### 1.2 一些功能性函数
 
+这里主要是给出一些辅助函数，附带简单的解释。
 
+##### 1.2.1 判断玩家
 
+使用lua写一些文明领袖能力时，我们总要判断玩家的特质，这里给出四种判断玩家类型的方法：
 
+**直接判断玩家的文明类型和领袖类型**
+优点：简单直接
+缺点：兼容性差，只有这个文明/领袖可用
+```lua
+--判断玩家是不是目标文明 返回布尔值
+function IsCivilizationType(playerID, civilizationType)
+    local pPlayerConfig = PlayerConfigurations[playerID]
+    if pPlayerConfig == nil then return false; end
+    if pPlayerConfig:GetCivilizationTypeName() == civilizationType then return true;
+    else return false; end
+end
+
+--判断玩家是不是目标领袖 返回布尔值
+function IsLeaderType(playerID, leaderType)
+    local pPlayerConfig = PlayerConfigurations[playerID]
+    if pPlayerConfig == nil then return false; end
+    if pPlayerConfig:GetLeaderTypeName() == leaderType then return true;
+    else return false; end
+end
+```
+
+**判断玩家的Trait**
+优点：兼容性更好
+缺点：代码更复杂
+```lua
+-- 判断玩家是否拥有目标Trait 返回布尔值
+function PlayerHasTrait(playerID, sTrait)
+	if playerID == nil or sTrait== nil then return false; end --首先，获取玩家配置
+	local playerConfig = PlayerConfigurations[playerID]
+	if playerConfig == nil then return false; end --然后，获取玩家的文明和领袖类型
+	local sCiv = playerConfig:GetCivilizationTypeName()
+	local sLea = playerConfig:GetLeaderTypeName()
+	for tRow in GameInfo.CivilizationTraits() do
+	    if (tRow.CivilizationType == sCiv and tRow.TraitType == sTrait) then return true; end
+	end
+	for tRow in GameInfo.LeaderTraits() do
+	    if (tRow.LeaderType == sLea and tRow.TraitType == sTrait) then return true; end
+	end
+	return false;
+end
+```
+**判断玩家的Property**
+优点：非常自由
+缺点：要写配合的Modifier，麻烦。
+```lua
+-- 判断玩家是否拥有目标Property 返回布尔值
+function Siqi_HasTraitProperty(playerID, sProperty)
+    local pPlayer = Players[playerID]
+    if not pPlayer then return false; end
+    local property = pPlayer:GetProperty(sProperty)
+    if not property or property <= 0 then return false; end
+    return true
+end
+```
+
+##### 1.2.2 字符串
+
+```lua
+-- 获得产出的字符串 示例：[ICON_Food]食物
+function GetYieldString(YieldType)
+    return GameInfo.Yields[YieldType].IconString..Locale.Lookup(GameInfo.Yields[YieldType].Name)
+end
+```
+
+##### 1.2.3 二进制转产
+
+二进制转产已经成为我大部分mod的核心了，其核心REQ就是
+**REQUIREMENT_PLOT_PROPERTY_MATCHES**
+参数为：PropertyName和PropertyMinimum
+
+基本原理：REQUIREMENT_PLOT_PROPERTY_MATCHES判断的是单元格的Property值，而我们是可以在lua中设置Property值的，因此这也是我们能在lua控制modifier的开关的方法。这种方法有缺点，但总体而言大幅提高了modder的自由度。
+
+为了方便讲解，我们先设定一个简单的目标：
+```
+城市每点宜居度额外+2科技值。
+```
+先新建一个sql文件：*_Modifiers.sql（这里的 *表示前缀，按需填写就行）
+
+然后这样写：
+```sql
+-- 这里是通用能力，当然也可以改成TraitModifiers然后绑定领袖或文明，不过ModifierType也需要对应修改。
+INSERT INTO  GameModifiers (ModifierId) VALUES
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_1'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_2'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_4'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_8'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_16'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_32'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_64');
+
+INSERT INTO  Modifiers(ModifierId, ModifierType, SubjectRequirementSetId) VALUES
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_1', 'MODIFIER_ALL_CITIES_ADJUST_CITY_YIELD_CHANGE', 'SIQI_MOD2_CITY_YIELD_SCIENCE_1'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_2', 'MODIFIER_ALL_CITIES_ADJUST_CITY_YIELD_CHANGE', 'SIQI_MOD2_CITY_YIELD_SCIENCE_2'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_4', 'MODIFIER_ALL_CITIES_ADJUST_CITY_YIELD_CHANGE', 'SIQI_MOD2_CITY_YIELD_SCIENCE_4'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_8', 'MODIFIER_ALL_CITIES_ADJUST_CITY_YIELD_CHANGE', 'SIQI_MOD2_CITY_YIELD_SCIENCE_8'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_16', 'MODIFIER_ALL_CITIES_ADJUST_CITY_YIELD_CHANGE', 'SIQI_MOD2_CITY_YIELD_SCIENCE_16'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_32', 'MODIFIER_ALL_CITIES_ADJUST_CITY_YIELD_CHANGE', 'SIQI_MOD2_CITY_YIELD_SCIENCE_32'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_64', 'MODIFIER_ALL_CITIES_ADJUST_CITY_YIELD_CHANGE', 'SIQI_MOD2_CITY_YIELD_SCIENCE_64');
+
+INSERT INTO  ModifierArguments (ModifierId, Name, Value) VALUES
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_1','Amount','1'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_1','YieldType','YIELD_SCIENCE'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_2','Amount','2'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_2','YieldType','YIELD_SCIENCE'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_4','Amount','4'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_4','YieldType','YIELD_SCIENCE'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_8','Amount','8'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_8','YieldType','YIELD_SCIENCE'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_16','Amount','16'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_16','YieldType','YIELD_SCIENCE'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_32','Amount','32'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_32','YieldType','YIELD_SCIENCE'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_64','Amount','64'),
+('MODIFIER_SIQI_MOD2_CITY_YIELD_SCIENCE_64','YieldType','YIELD_SCIENCE');
+ 
+INSERT INTO  RequirementSets (RequirementSetId, RequirementSetType) VALUES
+('SIQI_MOD2_CITY_YIELD_SCIENCE_1', 'REQUIREMENTSET_TEST_ALL'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_2', 'REQUIREMENTSET_TEST_ALL'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_4', 'REQUIREMENTSET_TEST_ALL'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_8', 'REQUIREMENTSET_TEST_ALL'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_16', 'REQUIREMENTSET_TEST_ALL'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_32', 'REQUIREMENTSET_TEST_ALL'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_64', 'REQUIREMENTSET_TEST_ALL');
+
+INSERT INTO  RequirementSetRequirements (RequirementSetId, RequirementId) VALUES
+('SIQI_MOD2_CITY_YIELD_SCIENCE_1', 'REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_1'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_2', 'REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_2'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_4', 'REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_4'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_8', 'REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_8'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_16', 'REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_16'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_32', 'REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_32'),
+('SIQI_MOD2_CITY_YIELD_SCIENCE_64', 'REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_64');
+
+INSERT INTO  Requirements (RequirementId, RequirementType) VALUES
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_1', 'REQUIREMENT_PLOT_PROPERTY_MATCHES'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_2', 'REQUIREMENT_PLOT_PROPERTY_MATCHES'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_4', 'REQUIREMENT_PLOT_PROPERTY_MATCHES'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_8', 'REQUIREMENT_PLOT_PROPERTY_MATCHES'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_16', 'REQUIREMENT_PLOT_PROPERTY_MATCHES'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_32', 'REQUIREMENT_PLOT_PROPERTY_MATCHES'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_64', 'REQUIREMENT_PLOT_PROPERTY_MATCHES');
+
+INSERT INTO  RequirementArguments (RequirementId, Name, Value) VALUES
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_1', 'PropertyName', 'REQ_SIQI_MOD2_PROPERTY_1'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_1', 'PropertyMinimum', 1),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_2', 'PropertyName', 'REQ_SIQI_MOD2_PROPERTY_2'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_2', 'PropertyMinimum', 1),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_4', 'PropertyName', 'REQ_SIQI_MOD2_PROPERTY_4'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_4', 'PropertyMinimum', 1),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_8', 'PropertyName', 'REQ_SIQI_MOD2_PROPERTY_8'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_8', 'PropertyMinimum', 1),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_16', 'PropertyName', 'REQ_SIQI_MOD2_PROPERTY_16'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_16', 'PropertyMinimum', 1),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_32', 'PropertyName', 'REQ_SIQI_MOD2_PROPERTY_32'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_32', 'PropertyMinimum', 1),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_64', 'PropertyName', 'REQ_SIQI_MOD2_PROPERTY_64'),
+('REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_64', 'PropertyMinimum', 1);
+
+```
+
+这样我们就得到了一系列由REQUIREMENT_PLOT_PROPERTY_MATCHES控制的modifier，假设我们需要10科技值产出，那么只需要：
+REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_8和REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_2启用，将对应的PropertyName的值设为1，其他的设为0，就可以轻松做到了。我们可以自由组合出1到127的科技值产出。
+
+城市宜居度是会上下变动的，因此我们需要反复刷新，控制modifier的启用与否。
 
