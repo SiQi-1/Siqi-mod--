@@ -866,12 +866,12 @@ local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "Laun
 local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
 ```
 这两行就是创建一个新的实例管理器（InstanceManager）对象，专门用于管理我们在xml里面写好的UI实例。
-`InstanceManager:new()`: 调用 InstanceManager 类的构造函数，创建一个新的管理器，后面跟了两个参数，分别是`LaunchKianaItem`和`LaunchKianaItemButton`，其中第一个参数LaunchKianaItem是我们在xml里面创建的面板启动按钮实例的模板名。它告诉管理器：“当你需要创建新实例时，请去查找我们在XML文件中用 <Instance Name="LaunchKianaItem"> 定义的那个模板”。第二个参数LaunchKianaItemButton是根控件的ID，在我们的代码中它是一个按钮的ID：<Button ID="LaunchKianaItemButton"……。它告诉管理器：“在那个模板里，真正的根元素是一个ID为LaunchKianaItemButton的控件（Button），请把它作为这个实例的代表返回给我”。
-后面`local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")`同理，就是把启动栏标记点模板也写进去。
+InstanceManager:new(): 调用 InstanceManager 类的构造函数，创建一个新的管理器，后面跟了两个参数，分别是LaunchKianaItem和LaunchKianaItemButton，其中第一个参数LaunchKianaItem是我们在xml里面创建的面板启动按钮实例的模板名。它告诉管理器：“当你需要创建新实例时，请去查找我们在XML文件中用 <Instance Name="LaunchKianaItem"> 定义的那个模板”。第二个参数LaunchKianaItemButton是根控件的ID，在我们的代码中它是一个按钮的ID：<Button ID="LaunchKianaItemButton"……。它告诉管理器：“在那个模板里，真正的根元素是一个ID为LaunchKianaItemButton的控件（Button），请把它作为这个实例的代表返回给我”。
+后面local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")同理，就是把启动栏标记点模板也写进去。
 
 >**笔记笔记**
 >所以，一般我们写xml的时候，都在<Instance></Instance>里面再套一层容器，比如这里就是<Button></Button>，有些代码里面会是<Container></Container>,这样我们在lua里面调用这个实例的时候，就会把<Instance>里面定义的所有内容全都包含进去。
->其实这个函数`InstanceManager:new()`不止上面提到的两个参数，它还有第三个参数，只是这里我们暂时用不到，后面我们在写记录文本以及新建按钮的时候会用到，到时候会再跟大家详细解释这个函数。
+>其实这个函数InstanceManager:new()不止上面提到的两个参数，它还有第三个参数，只是这里我们暂时用不到，后面我们在写记录文本以及新建按钮的时候会用到，到时候会再跟大家详细解释这个函数。
 
 之后，我们写上按钮的初始化代码：
 
@@ -905,8 +905,8 @@ end
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
 看到这里，或许你会有疑问，为什么这里要定义两个全局变量呢？
-`local EntryButtonInstance = nil`
- `local LaunchBarPinInstance = nil`
+local EntryButtonInstance = nil
+ local LaunchBarPinInstance = nil
 其实这是一个引用变量。它的目的是为了后续存储从m_LaunchItemInstanceManager函数里面生成出来的第一个按钮实例，在下面的SetupKianaLaunchBarButton()函数中，你会看到这行代码：EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)，这时，EntryButtonInstance 就不再是 nil，而是一个包含真实UI按钮的对象，程序可以通过它来操作这个具体的按钮（如注册点击事件，判断按钮可见性，等等）。
 
 举个例子，比如说我们现在给这个按钮增加一个可见性检查，只有当玩家选择阿基坦的埃莉诺（法国）这个领袖的时候，按钮才可见，代码如下：
@@ -952,8 +952,8 @@ end
 --后续代码……
 ```
 在KianaButtonIsHide()这个函数中，我们直接写上：
-`EntryButtonInstance.LaunchKianaItemButton:SetHide(true);`
-`EntryButtonInstance.LaunchKianaItemButton:SetHide(false);`
+EntryButtonInstance.LaunchKianaItemButton:SetHide(true);
+EntryButtonInstance.LaunchKianaItemButton:SetHide(false);
 来判断按钮是否可见。
 
 到这里还没结束，虽然我们定义了打开界面的代码逻辑，但是并没有写关闭界面的代码逻辑，这个时候进入游戏，你会发现只要打开这个界面就关不掉了。所以我们还要继续添加关闭界面的代码逻辑。此时你应该会想到，我们在xml里面定义了一个关闭按钮：ID为CloseButton，位于右上角。接下来我们为这个按钮写上关闭界面的功能，代码如下：
@@ -1053,11 +1053,11 @@ ContextPtr:SetInputHandler(KianaInputHandler)  -- 设置全局输入监听
 ContextPtr:SetInitHandler(KianaInitHandler) -- 设置界面初始化回调
 ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
 ```
-首先，`SetInputHandler(KianaInputHandler)`：这是一个输入处理函数 ，它会告诉游戏引擎，当这个UI界面是当前焦点时，所有的键盘和鼠标输入事件都要先交给 KianaInputHandler 函数处理。这让你可以捕获按键（如ESC键）。这个函数确保了当你的Mod窗口打开时，按下ESC键会关闭你的窗口，并且这个ESC键事件不会继续传递去关闭游戏的其他界面（比如意外退出了游戏主菜单），提供了用户友好的游戏体验。
+首先，SetInputHandler(KianaInputHandler)：这是一个输入处理函数 ，它会告诉游戏引擎，当这个UI界面是当前焦点时，所有的键盘和鼠标输入事件都要先交给 KianaInputHandler 函数处理。这让你可以捕获按键（如ESC键）。这个函数确保了当你的Mod窗口打开时，按下ESC键会关闭你的窗口，并且这个ESC键事件不会继续传递去关闭游戏的其他界面（比如意外退出了游戏主菜单），提供了用户友好的游戏体验。
 
-其次，`SetInitHandler(KianaInitHandler)`：这是一个延迟初始化函数。游戏引擎会在所有UI元素加载完毕、但尚未显示之前调用它。那么为什么我们要在这里调用？ 虽然我们在Initialize()函数里已经调用了SetupKianaLaunchBarButton()，但有些UI操作确保在完全初始化完成后执行会更安全。这里再次确保启动栏按钮被正确创建和设置。
+其次，SetInitHandler(KianaInitHandler)：这是一个延迟初始化函数。游戏引擎会在所有UI元素加载完毕、但尚未显示之前调用它。那么为什么我们要在这里调用？ 虽然我们在Initialize()函数里已经调用了SetupKianaLaunchBarButton()，但有些UI操作确保在完全初始化完成后执行会更安全。这里再次确保启动栏按钮被正确创建和设置。
 
-最后，`SetShutdown(KianaShutdownHandler)`：这是UI的析构函数。当Mod界面被关闭或游戏结束时，游戏引擎会自动调用它。在游戏运行期间，通过 InstanceManager:GetInstance() 创建的UI实例会占用内存。如果不手动释放，即使关闭了Mod，这些内存也不会被回收，导致内存泄漏。这个很重要：如果不加上这个函数，那么有可能会导致即使把mod卸了也会触发相应的功能！
+最后，SetShutdown(KianaShutdownHandler)：这是UI的析构函数。当Mod界面被关闭或游戏结束时，游戏引擎会自动调用它。在游戏运行期间，通过 InstanceManager:GetInstance() 创建的UI实例会占用内存。如果不手动释放，即使关闭了Mod，这些内存也不会被回收，导致内存泄漏。这个很重要：如果不加上这个函数，那么有可能会导致即使把mod卸了也会触发相应的功能！
 
 最后是LuaEvents，这些是文明6游戏引擎提供的事件系统的一部分，它们代表了游戏中发生的各种特定或随机事件。当游戏中发生这些事件时，调用我们的 HideKIANAWindow 函数，隐藏界面。这是一种非常重要的设计模式，它确保了我们的Mod界面能够与游戏原生界面正确交互和和谐共存，避免UI重叠或冲突。
 
