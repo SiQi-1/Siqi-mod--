@@ -653,3 +653,196 @@ REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_8和REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_2启用，
 
 城市宜居度是会上下变动的，因此我们需要反复刷新，控制modifier的启用与否。
 
+#### 1.3 UI界面设计
+
+本节我们将尝试制作UI界面，以及一些常用的控件使用方法；由于UI界面设计较为复杂，我们将从一个最简单的界面设计开始，带大家一步步深入探讨。
+
+##### 1.2.1 设计一个简单面板
+
+本小节我们先从设计一个最简单的UI面板开始，假如我们要设计如下面板：
+![alt text](image1.jpg)
+
+###### **1、xml部分：面板内容**
+
+xml部分记录了这个面板上所包涵的所有内容。首先我们来分析一下这个面板上有哪些内容：
+![alt text](image2.jpg)
+通过观察不难发现，这个面板包括：1. 一个主容器：就是目前我们看到的最外面的边框；主容器的背景图片：使用宗教背景的纹理图片；
+2.一个标题栏（容器），包括：标题内容（教程面板）；
+3.主容器的一个外边框装饰；
+4.一个关闭按钮，位于右上角；
+5.面板的主体部分，包括：（1）一个标签页选择按钮（第一页），位于标题栏正下方；（2）该标签页对应的内容，包括：1>一个容器，使用深蓝色背景纹理，且四周还有圆角效果；2>中间显示了一个文本，内容是“请输入内容”。
+
+以上内容我们都要在xml里面写出来，具体代码如下：
+```xml
+    <Container ID="MainContainer" Anchor="C,C" Size="900,600" Offset="0,0">
+        <Image ID="ModalBG" Size="parent,parent" Texture="Religion_BG" StretchMode="Tile" ConsumeMouse="1"/>  
+        <Grid Size="parent,40" Texture="Controls_SubHeader2" ConsumeMouse="1" SliceCorner="20,2" SliceTextureSize="40,40">
+            <Label ID="ScreenTitle" String="LOC_KIANA_WINDOW_TITLE" Anchor="C,C" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader" />
+        </Grid> 
+        <Grid Offset="-8,-8" Size="parent+16,parent+16" Style="ScreenFrame"/>
+        <Button ID="CloseButton" Anchor="R,T" Size="44,44" Texture="Controls_CloseLarge"/>
+        <Tab ID="TabControl" Anchor="L,T" Size="parent-40, 520" Offset="0,30">
+            <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
+                <GridButton ID="SelectTab_FirstPage" Style="TabButton" Size="100,35">
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>
+                </GridButton>
+            </Stack>
+            <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
+                <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
+                    <Label ID="NoteLabel1" Offset="20,60" Anchor="L,T" WrapWidth="850" Style="FontFlair20" FontStyle="shadow" ColorSet="ShellHeader" String="LOC_KIANA_FIRST_PAGE"/>
+                </Grid>
+            </Container>
+        </Tab>
+    </Container>  
+```
+下面我们来逐行分析一下：
+第一行：
+```xml
+    <Container ID="MainContainer" Anchor="C,C" Size="900,600" Offset="0,0">
+```
+这里定义了一个主容器，ID为MainContainer；锚点是Anchor="C,C"，表示这个容器生成在游戏界面的正中间（C,C表示上下居中，左右居中，类似的L表示左边，R表示右边，T表示顶部，B表示底部，比如Anchor="L,T"就表示靠左置顶）；大小为Size="900,600"，表示长为900像素，宽为600像素；偏移量为0：Offset="0,0"。
+
+第二行：
+```xml
+        <Image ID="ModalBG" Size="parent,parent" Texture="Religion_BG" StretchMode="Tile" ConsumeMouse="1"/>  
+```
+这里是定义背景图片的，图片的ID为ModalBG；Size="parent,parent"：尺寸大小与父控件相同，即长为900像素，宽为600像素；Texture="Religion_BG"：使用宗教界面的背景纹理图片（这是官方定义好的图片，这里直接拿来用了。如果想用自己的图片，需要在这里填上自己图片的名称（一定要以dds为后缀，后面我们设顶部按钮的图片还会重点介绍）；StretchMode="Tile"：图片以平铺方式填充；ConsumeMouse="1"：阻止鼠标点击事件穿透到下层。
+
+第三~五行：
+```xml
+        <Grid Size="parent,40" Texture="Controls_SubHeader2" ConsumeMouse="1" SliceCorner="20,2" SliceTextureSize="40,40">
+            <Label ID="ScreenTitle" String="LOC_KIANA_WINDOW_TITLE" Anchor="C,C" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader" />
+        </Grid> 
+```
+这里定义了标题栏：Size="parent,40"：标题栏的大小为：长与父控件相同，即900像素，宽为40像素；Texture="Controls_SubHeader2"：使用游戏内名为Controls_SubHeader2的纹理作为背景；ConsumeMouse="1"：阻止鼠标点击事件穿透到下层；SliceCorner="20,2"和SliceTextureSize="40,40"用于控制纹理的九宫格拉伸：SliceTextureSize="40,40"：定义了源纹理中被视为“角”的区域大小（40x40像素）；SliceCorner="20,2"：定义了在目标（这个Grid）上，每个角应该占用多大区域。这里水平方向角宽20像素，垂直方向角高2像素。简单来说，这确保了背景纹理在拉伸时，角落部分（如圆角）能保持原样，而中间部分则平滑拉伸，以适应任何宽度。
+
+标题栏里面包涵一个文本（即标题：教程面板），ID为ID="ScreenTitle"，String="LOC_KIANA_WINDOW_TITLE"：标题的内容：LOC_KIANA_WINDOW_TITLE翻译过来为“教程面板“，这个需要在text文件里面写好对应的中文翻译；Anchor="C,C"：锚点位于正中间；Style="FontFlair22"：使用官方预定义的文本样式，FontStyle="glow"：在字体基础样式之上，再添加一个发光的效果；ColorSet="ShellHeader"：使用一个名为 ShellHeader 的预定义颜色套装。这确保了整个游戏的标题文本颜色风格统一（通常是亮色，如白色，以在深色背景上突出）。
+
+第六行：
+```xml
+        <Grid Offset="-8,-8" Size="parent+16,parent+16" Style="ScreenFrame"/>
+```
+这里定义了一个主容器的的外边框装饰：Offset="-8,-8"：偏移量为-8，-8表示相对于其父容器（MainContainer）上下左右各超出8个像素，所以总和就是16，即Size="parent+16,parent+16"；Style="ScreenFrame"：定义了这个装饰的纹理效果。
+
+第七行：
+```xml
+        <Button ID="CloseButton" Anchor="R,T" Size="44,44" Texture="Controls_CloseLarge"/>
+```
+这里定义了一个关闭按钮：ID为CloseButton；Anchor="R,T"：锚点在父容器右边置顶；Size="44,44"：大小为44*44像素，Texture="Controls_CloseLarge"：使用大号关闭按钮的图标。（小号关闭按钮的图标为：Style="CloseButtonSmall"，这里不需要设定尺寸）
+
+第八行：
+```xml
+        <Tab ID="TabControl" Anchor="L,T" Size="parent-40, 520" Offset="0,30">
+```
+这里定义了标签页容器：包括标签页选择按钮及其对应的区域，容器的ID为TabControl，锚点在左边置顶，尺寸大小为：长为父容器-40像素，宽为520像素（也可以写parent-80），偏移量为左右偏移量为0，上下偏移量为30.
+
+第九~十三行：
+```xml
+            <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
+                <GridButton ID="SelectTab_FirstPage" Style="TabButton" Size="100,35">
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>
+                </GridButton>
+            </Stack>
+```
+这里定义了标签页选择按钮：首先它在一个容器里，这个容器的堆叠方式为：StackGrowth="Right"：将里面的元素从左到右的顺序依次放置（前面有讲过），锚点为居中顶部，偏移量为向下偏移10像素。该容器里面包括一个按钮，按钮ID为SelectTab_FirstPage：
+
+>**注意脚下**：ID="SelectTab_FirstPage"
+>
+>可能你已经注意到了，这个ID与其他的略有不同。前面是SelectTab，然后用下划线连接着FirstPage，细心的你一定注意到了，我们接下来Container里面包含的容器Grid ID="FirstPage"正好与这个ID下划线后面的内容相同：
+>   ```xml        
+>           <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
+>               <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
+>                   <Label ID="NoteLabel1" Offset="20,60" Anchor="L,T" WrapWidth="850" Style="FontFlair20" FontStyle="shadow" ColorSet="ShellHeader" String="LOC_KIANA_FIRST_PAGE"/>
+>               </Grid>
+>           </Container>
+>   ```
+>注意这里标签页选择按钮的ID是固定写法：即前面是'SelectTab'加上下划线'_'再加上该标签页对应的容器的ID。容器的ID前面的'SelectTab'不能写成其他的，除此之外下划线也一定要有，不然我们点击该标签页选择按钮就无法跳转到其对应的界面。
+
+Style="TabButton": 应用一个名为"TabButton"的预定义样式，尺寸为：长是100像素，宽是35像素，其中按钮内部包含一个文本，Style="FontFlair14"：字体样式为使用14号的“Flair”字体样式，内容为String="LOC_KIANA_FIRST_PAGE_TAB"翻译过来是”第一页“，Anchor="C,C"：字体显示在按钮正中间；FontStyle="stroke"：为文字添加描边效果； ColorSet="TopBarValueCS"：使用一个名为 "TopBarValueCS" 的预定义颜色方案。
+
+第十四~十八行：
+```xml        
+           <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
+               <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
+                   <Label ID="NoteLabel1" Offset="20,60" Anchor="L,T" WrapWidth="850" Style="FontFlair20" FontStyle="shadow" ColorSet="ShellHeader" String="LOC_KIANA_FIRST_PAGE"/>
+               </Grid>
+           </Container>
+```
+这里定义了一个所有标签页内容的总父容器，你可以把它想象成一个画板，不同的标签页（FirstPage, SecondPage等）就像是画板上的透明图层。一次只显示一个“图层”，其他的则被隐藏。Grid ID="FirstPage":这是第一个标签页对应的容器，Size="parent,parent-20"：大小为：长为父容器像素，宽比父容器小20像素；Offset="20,50"：向右偏移20像素，向下偏移50像素；Texture="Religion_OverviewFrame"：使用一个名为 Religion_OverviewFrame 的纹理作为这个内容面板的背景（图中显示为深蓝色）；SliceCorner="15,15"： 使用九宫格拉伸，确保这个背景板的圆角（15x15像素）在任何尺寸下都能正确显示，不会变形。
+
+>**笔记笔记**：
+>```xml   
+>               <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
+>```
+> Texture="Religion_OverviewFrame" SliceCorner="15,15",这个代码是设定容器的边框的，如果不写这两个代码，那么该界面（FirstPage）的边框将不会显示，这里写上是为了更好的看到该容器的大小，以便以后往里面添加内容时好调整间距。此外，SliceCorner="15,>15" 是固定写法，这个背景板的圆角：15x15像素 写成其他任何像素值该效果都不会生效。
+
+该容器（FirstPage）内部包涵一个文本：ID为NoteLabel1；WrapWidth="850"：换行宽度：即文本显示的一行字的长度超过1340像素才会换行；Style="FontFlair20"：字体样式为使用使用官方预定义的文本样式；FontStyle="shadow"：在基础样式之上添加额外的阴影效果；ColorSet="ShellHeader"：使用一个预定义的颜色配置集；String="LOC_KIANA_FIRST_PAGE"：该文本内容是：“请输入内容”。
+
+###### **2、xml部分：启动按钮**
+现在我们已经在xml文件里面写上了该面板所包涵的所有内容。接下来我们要写打开这个面板的启动按钮（注意我们左上角自定义的按钮）。
+这里我们的节点要写成<Instance>: 这不是一个直接显示在界面上的元素，而是一个模板（或蓝图）。它可以被游戏的其他部分或Lua脚本多次“实例化”和调用，从而避免重复编写相同的UI代码。
+我们在xml里面写上这个启动按钮，具体代码如下：
+```xml
+    <Instance Name="LaunchKianaItem">
+        <Button ID="LaunchKianaItemButton" Anchor="L,C" Size="49,49" Texture="LaunchBar_Hook_GreatWorksButton" Style="ButtonNormalText" TextureOffset="0,2" StateOffsetIncrement="0,49" ToolTip="LOC_ETStudio_ENTRY_BUTTON_TOOLTIP">
+            <Image ID="LaunchItemIcon" Texture="KianaEntryIcon.dds" Size="35,35" Anchor="C,C" Offset="0,-1" Hidden="0"/>
+            <Label ID="IconAlter" String="[ICON_CapitalLarge]" Anchor="C,C" Offset="0,0" Hidden="1"/>   
+        </Button>
+    </Instance>
+```
+下面我们来逐行分析一下：
+第一行：
+```xml
+    <Instance Name="LaunchKianaItem">
+```
+Name="LaunchBarItem3": 这个模板的唯一名称。其他代码可以通过这个名称来引用并使用它创建实际的按钮。（在lua里面我们会重点介绍它的用法）
+
+第二行：
+```xml
+    <Button ID="LaunchKianaItemButton" Anchor="L,C" Size="49,49" Texture="LaunchBar_Hook_GreatWorksButton" Style="ButtonNormalText" TextureOffset="0,2" StateOffsetIncrement="0,49" ToolTip="LOC_KIANA_ENTRY_BUTTON_TOOLTIP">
+```
+ID="LaunchItem3Button": 按钮实例的标识符。在由这个模板创建出的每个实际按钮中，这个ID可能都会存在，便于单独控制；
+Texture="LaunchBar_Hook_GreatWorksButton"：这是按钮的背景纹理；
+Style="ButtonNormalText"：应用一个基础的按钮样式；
+TextureOffset="0,2"：纹理偏移。将背景纹理在Y轴上向下移动2像素，这通常是一个微调属性，用于让背景图案在视觉上与其他图标更好地对齐，实现像素级的精确布局；
+StateOffsetIncrement="0,49"：这是一个非常重要的属性，用于处理按钮的不同状态（如正常、悬停、按下、禁用），它表示状态纹理在源纹理集（Texture Atlas）中的偏移量增量。0,49 意味着：不同状态（悬停、按下等）对应的纹理位于当前纹理正下方49像素的位置。这是一种常见的“纹理集”或“精灵图（Sprite Sheet）”技术，将多个状态的图像放在一张大图上，通过偏移来切换；
+ToolTip="LOC_KIANA_ENTRY_BUTTON_TOOLTIP"：按钮的鼠标悬停提示：定义鼠标悬停在按钮上时显示的工具提示文本。
+
+第三行：
+```xml
+            <Image ID="LaunchItemIcon" Texture="KianaEntryIcon.dds" Size="35,35" Anchor="C,C" Offset="0,-1" Hidden="0"/>
+```
+这里定义了按钮的图片，ID为LaunchItemIcon，这里采用自定义图片，名称是KianaEntryIcon.dds，大小为35*35像素，锚点为居中，偏移量为向下偏移1个像素，Hidden="0"：默认显示（如果Hidden="1"就是默认隐藏）。
+
+>**笔记笔记**：
+>  关于图片的加载，有两种方法：第一种是直接在modinfo里面的<ImportFiles>节点填上图片的路径：  
+>```modinfo 
+>      <ImportFiles id="KianaInclude">
+>          <File>KianaEntryIcon.dds</File>
+>      </ImportFiles>
+>``` 
+>第二种方法是创建一个xlp文件，最后生成blp文件，这里为了方便我们采用第一种方法。（采用第二种方法不要忘记创建一个*.artdef文件，不然游戏读不出来图片）
+
+第四行：
+```xml
+            <Label ID="IconAlter" String="[ICON_CapitalLarge]" Anchor="C,C" Offset="0,0" Hidden="1"/>  
+```
+这是一个备用显示方案。如果自定义图标因为某种原因无法加载，可能会回退到这里显示这个备用图标。String="[ICON_CapitalLarge]": 这是官方的图标代码。Hidden="1": 1 表示默认隐藏。因为这个是备用方案，所以正常情况下不显示。
+
+除此之外我们最好写一个启动栏标记点模板，这个模板创建了一个小圆点，这类小元素在游戏UI中常常用于指示状态、进度或当前位置，比如表示某个功能有新通知，或者作为多页面启动栏的页码指示器。
+我们在xml里面写上相关代码，具体代码如下：
+```xml
+    <Instance Name="LaunchKianaPinInstance">
+    <Image ID="KianaPin" Anchor="L,C" Offset="0,-2" Size="7,7" Texture="LaunchBar_TrackPip" Color="255,255,255,200"/>
+    </Instance>
+```
+ID="KianaPin"： 该图像元素的标识符。
+Anchor="L,C"： 锚定在父容器的左侧中间位置。
+Offset="0,-2"： 视觉微调。在锚定位置的基础上，再向上偏移2像素。
+Size="7,7"： 定义图像的显示大小为7x7像素。这是一个非常小的尺寸，明确表明它是一个点缀性的指示器，而不是主要按钮。
+Texture="LaunchBar_TrackPip"：指定了要显示的图像来源。
+Color="255,255,255,200"：颜色覆盖属性，这意味着它是半透明的，不是纯白。
+
+**至此我们xml部分就全部写完了，接下来我们来写lua部分的代码。**
+
+###### **3、lua部分**
