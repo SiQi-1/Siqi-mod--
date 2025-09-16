@@ -846,3 +846,221 @@ Color="255,255,255,200"：颜色覆盖属性，这意味着它是半透明的，
 **至此我们xml部分就全部写完了，接下来我们来写lua部分的代码。**
 
 ###### **3、lua部分**
+
+关于lua部分，首先我们先在文件开头写上以下几行代码：
+```lua
+include("InstanceManager");  -- 引入游戏引擎的实例管理系统
+
+local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "LaunchKianaItemButton")
+local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
+```
+我们一行一行来看，第一行：
+```lua
+include("InstanceManager");  
+```
+这行代码引入了游戏引擎提供的一个名为InstanceManager.lua的脚本文件，这个文件定义了一个叫做InstanceManager的类（Class）。这个类是文明6UI系统的基石，它提供了一种强大且高效的方法来动态创建、重复使用和销毁由XML模板定义的UI控件。可以说，我们以后写UI界面，这个是必须要有的，而且在开头就直接写上。
+
+第二行和第三行：
+```lua
+local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "LaunchKianaItemButton")
+local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
+```
+这两行就是创建一个新的实例管理器（InstanceManager）对象，专门用于管理我们在xml里面写好的UI实例。
+```InstanceManager:new()```: 调用 InstanceManager 类的构造函数，创建一个新的管理器，后面跟了两个参数，分别是```LaunchKianaItem```和```LaunchKianaItemButton```，其中第一个参数LaunchKianaItem是我们在xml里面创建的面板启动按钮实例的模板名。它告诉管理器：“当你需要创建新实例时，请去查找我们在XML文件中用 <Instance Name="LaunchKianaItem"> 定义的那个模板”。第二个参数LaunchKianaItemButton是根控件的ID，在我们的代码中它是一个按钮的ID：<Button ID="LaunchKianaItemButton"……。它告诉管理器：“在那个模板里，真正的根元素是一个ID为LaunchKianaItemButton的控件（Button），请把它作为这个实例的代表返回给我”。
+后面```local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")```同理，就是把启动栏标记点模板也写进去。
+
+>**笔记笔记**
+>所以，一般我们写xml的时候，都在<Instance></Instance>里面再套一层容器，比如这里就是<Button></Button>，有些代码里面会是<Container></Container>,这样我们在lua里面调用这个实例的时候，就会把<Instance>里面定义的所有内容全都包含进去。
+>其实这个函数```InstanceManager:new()```不止上面提到的两个参数，它还有第三个参数，只是这里我们暂时用不到，后面我们在写记录文本以及新建按钮的时候会用到，到时候会再跟大家详细解释这个函数。
+
+之后，我们写上按钮的初始化代码：
+
+```lua
+local EntryButtonInstance = nil  -- 启动栏按钮实例（后续通过GetInstance()赋值）
+local LaunchBarPinInstance = nil  -- 启动栏标记点实例
+
+function SetupKianaLaunchBarButton()  
+    local ctrl = ContextPtr:LookUpControl("/InGame/LaunchBar/ButtonStack")  --通过路径查找UI控件
+    if ctrl == nil then-- 兼容性检查，如果没有找到控件，就返回，这个检查可以防止脚本因找不到控件而抛出错误，导致游戏崩溃
+        return
+    end
+    if EntryButtonInstance == nil then  -- 单例模式：防止多次创建同一个按钮。EntryButtonInstance 是一个全局变量，初始为nil。首次运行后，它会保存创建的按钮实例。这个检查确保即使函数被多次调用，也只会创建一个按钮实例，避免在启动栏上出现重复按钮。
+        EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)    -- 创建按钮实例并挂载到游戏UI
+        LaunchBarPinInstance = m_LaunchBarPinInstanceManager:GetInstance(ctrl)  --创建一个标记点实例并添加到启动栏
+        EntryButtonInstance.LaunchKianaItemButton:RegisterCallback(Mouse.eLClick,    -- 注册按钮点击事件：打开界面（LaunchKianaItemButton是我们在xml里面定义好的按钮ID）
+        function()
+            ShowKIANAWindow()  --调用函数打开界面
+        end)
+    end
+end
+
+function ShowKIANAWindow() -- 打开界面
+    ContextPtr:SetHide(false)  -- 显示窗口
+    UI.PlaySound("UI_Screen_Open") -- 播放打开音效
+end
+
+function Initialize()
+    SetupKianaLaunchBarButton()
+end
+Events.LoadGameViewStateDone.Add(Initialize)
+```
+看到这里，或许你会有疑问，为什么这里要定义两个全局变量呢？
+```local EntryButtonInstance = nil```
+ ```local LaunchBarPinInstance = nil```
+其实这是一个引用变量。它的目的是为了后续存储从m_LaunchItemInstanceManager函数里面生成出来的第一个按钮实例，在下面的SetupKianaLaunchBarButton()函数中，你会看到这行代码：EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)，这时，EntryButtonInstance 就不再是 nil，而是一个包含真实UI按钮的对象，程序可以通过它来操作这个具体的按钮（如注册点击事件，判断按钮可见性，等等）。
+
+举个例子，比如说我们现在给这个按钮增加一个可见性检查，只有当玩家选择阿基坦的埃莉诺（法国）这个领袖的时候，按钮才可见，代码如下：
+
+```lua
+local m_iCurrentPlayerID = Game.GetLocalPlayer() -- 当前玩家ID
+local m_pCurrentPlayer = Players[m_iCurrentPlayerID]  -- 当前玩家对象
+local ELEANOR_FRANCE = "LEADER_ELEANOR_FRANCE"  -- 阿基坦的埃莉诺（法国）
+
+function KianaIsPlayerLeader(playerID, leaderType)
+    local pPlayerConfig = PlayerConfigurations[playerID]
+    if pPlayerConfig == nil then return false; end
+   if pPlayerConfig:GetLeaderTypeName() == leaderType then
+        return true
+    else
+        return false
+    end
+end
+
+function KianaButtonIsHide()
+    if not KianaIsPlayerLeader(m_iCurrentPlayerID, ELEANOR_FRANCE) then
+        EntryButtonInstance.LaunchKianaItemButton:SetHide(true);
+    else
+        EntryButtonInstance.LaunchKianaItemButton:SetHide(false);
+    end
+end
+
+function SetupKianaLaunchBarButton()  
+    local ctrl = ContextPtr:LookUpControl("/InGame/LaunchBar/ButtonStack")  --通过路径查找UI控件
+    if ctrl == nil then-- 兼容性检查，如果没有找到控件，就返回，这个检查可以防止脚本因找不到控件而抛出错误，导致游戏崩溃
+        return
+    end
+    if EntryButtonInstance == nil then  -- 单例模式：防止多次创建同一个按钮。EntryButtonInstance 是一个全局变量，初始为nil。首次运行后，它会保存创建的按钮实例。这个检查确保即使函数被多次调用，也只会创建一个按钮实例，避免在启动栏上出现重复按钮。
+        EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)    -- 创建按钮实例并挂载到游戏UI
+        LaunchBarPinInstance = m_LaunchBarPinInstanceManager:GetInstance(ctrl)  --创建一个标记点实例并添加到启动栏
+        KianaButtonIsHide()  --添加按钮可见性检查
+        EntryButtonInstance.LaunchKianaItemButton:RegisterCallback(Mouse.eLClick,    -- 注册按钮点击事件：打开界面
+        function()
+            ShowKIANAWindow()  --调用函数打开界面
+        end)
+    end
+end
+--后续代码……
+```
+在KianaButtonIsHide()这个函数中，我们直接写上：
+```EntryButtonInstance.LaunchKianaItemButton:SetHide(true);```
+```EntryButtonInstance.LaunchKianaItemButton:SetHide(false);```
+来判断按钮是否可见。
+
+到这里还没结束，虽然我们定义了打开界面的代码逻辑，但是并没有写关闭界面的代码逻辑，这个时候进入游戏，你会发现只要打开这个界面就关不掉了。所以我们还要继续添加关闭界面的代码逻辑。此时你应该会想到，我们在xml里面定义了一个关闭按钮：ID为CloseButton，位于右上角。接下来我们为这个按钮写上关闭界面的功能，代码如下：
+```lua
+function HideKIANAWindow() --- 关闭界面
+    if not ContextPtr:IsHidden() then   -- 检查窗口是否已显示
+        ContextPtr:SetHide(true) -- 隐藏窗口
+        UI.PlaySound("UI_Screen_Close") -- 播放关闭音效
+    end
+end
+```
+除此之外我们还要为这个关闭按钮注册回调函数，在Initialize()函数里添加回调函数：
+```lua
+    Controls.CloseButton:RegisterCallback(Mouse.eLClick, HideKIANAWindow)  -- 关闭按钮
+```
+这时你的Initialize()函数看起来会是这样：
+```lua
+function Initialize()
+    SetupKianaLaunchBarButton()
+    KianaButtonIsHide() --再次调用按钮可见性函数
+    Controls.CloseButton:RegisterCallback(Mouse.eLClick, HideKIANAWindow)  -- 关闭按钮
+end
+Events.LoadGameViewStateDone.Add(Initialize)
+```
+这里可能大家会有疑问，为什么在前面的SetupKianaLaunchBarButton()函数中已经调用过按钮可见性的函数，这里为什么还要再调用一次呢？其实，这种看似“重复”的操作通常是有意为之的，是一种防御性编程和确保兼容性的重要技巧，主要原因有以下几点：
+
+>**笔记笔记**
+>1. 初始化时序的不确定性
+>这是最主要的原因。游戏UI的加载和初始化是一个多阶段的过程：
+>第一阶段：你的Lua文件被加载，Initialize() 函数被定义，但尚未执行。
+>第二阶段：Events.LoadGameViewStateDone.Add(Initialize) 确保在游戏主界面完全加载后，才执行你的 Initialize() 函数。
+>第三阶段：在 Initialize() 内部，你调用 SetupKianaLaunchBarButton()。
+>问题在于：即使在 SetupKianaLaunchBarButton() 中成功创建了按钮并设置了初始可见性，从这时到游戏完全准备就绪之间，游戏状态可能仍会发生微小变化。例如，玩家的最终配置、其他Mod的干扰或游戏内部的后续初始化步骤都可能影响按钮应该显示的状态。
+>在 Initialize() 的末尾再次调用 KianaButtonIsHide()，相当于在所有初始化代码执行完毕后，进行一次最终的状态同步，确保按钮的可见性是基于100%确定的游戏状态。
+>
+>2. 模块化与函数职责
+>SetupKianaLaunchBarButton() 的主要职责是“创建和设置按钮”。调用 KianaButtonIsHide() 是其设置过程的一部分，确保按钮创建后有一个合理的初始状态。
+>Initialize() 的主要职责是“确保整个Mod处于正确的初始状态”。在它看来，按钮的可见性是这种状态的一部分。因此，它需要亲自验证并强制执行一次，无论之前的函数做了什么。
+>
+>3. 代码可读性与维护性
+>从代码维护的角度看，在 Initialize() 中明确地调用 KianaButtonIsHide()，清晰地传达了我们的设计意图：“在初始化结束时，按钮的可见性必须根据当前条件重新计算一次”。这使得后续的维护者能够更轻松地理解整个初始化流程的最终目标。
+
+到这一步，我们的lua部分就差不多写完了。最后再添加一些管理UI界面生命周期和交互的函数，可以确保Mod的稳定性、与游戏本身的良好集成以及高效的内存使用。具体如下：
+
+```lua
+function KianaInputHandler(uiMsg, wParam, lParam)  --输入处理 InputHandler()
+    if (uiMsg == KeyEvents.KeyUp) then  -- 检测按键事件
+        if (wParam == Keys.VK_ESCAPE) then-- 如果是ESC键
+            if Controls.MainContainer:IsVisible() then  --我们创建的UI界面可见
+                HideKIANAWindow() -- 关闭窗口
+                return true   -- 阻止事件继续传递
+            end
+        end
+    end
+    return false -- 其他按键不拦截
+end
+
+function KianaInitHandler()  --初始化逻辑 InitHandler()
+    SetupKianaLaunchBarButton()   -- 初始化游戏主界面的入口按钮
+end
+
+function KianaShutdownHandler()  --- 关闭时资源清理
+        -- 1. 释放主界面入口按钮实例（避免内存泄漏）
+    if EntryButtonInstance ~= nil then
+        m_LaunchItemInstanceManager:ReleaseInstance(EntryButtonInstance)
+    end
+        -- 2. 释放入口按钮的装饰标记实例（避免内存泄漏）
+    if LaunchBarPinInstance ~= nil then
+        m_LaunchBarPinInstanceManager:ReleaseInstance(LaunchBarPinInstance)
+    end
+end
+
+--最后初始化函数添加下面的部分;
+function Initialize()
+    SetupKianaLaunchBarButton()
+    KianaButtonIsHide()
+    ContextPtr:SetInputHandler(KianaInputHandler)  -- 设置全局输入监听
+    ContextPtr:SetInitHandler(KianaInitHandler) -- 设置界面初始化回调
+    ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
+    Controls.CloseButton:RegisterCallback(Mouse.eLClick, HideKIANAWindow)  -- 关闭按钮
+
+    LuaEvents.DiplomacyActionView_HideIngameUI.Add(HideKIANAWindow)     --当外交界面显示时，需要隐藏游戏内UI（包括我们的Mod窗口）
+    LuaEvents.EndGameMenu_Shown.Add(HideKIANAWindow)                    --当结束游戏菜单（例如胜利/失败画面）显示时，隐藏我们的窗口。
+    LuaEvents.FullscreenMap_Shown.Add(HideKIANAWindow)                  --当全屏地图显示时，隐藏我们的窗口。
+    LuaEvents.NaturalWonderPopup_Shown.Add(HideKIANAWindow)             --当自然奇观弹出界面显示时（例如我们发现一个自然奇观），隐藏我们的窗口。
+    LuaEvents.ProjectBuiltPopup_Shown.Add(HideKIANAWindow)              --当项目建成弹出界面显示时（例如完成一个太空项目），隐藏我们的窗口。
+    LuaEvents.Tutorial_ToggleInGameOptionsMenu.Add(HideKIANAWindow)     --当教程中切换游戏选项菜单时（或者游戏选项菜单显示/隐藏时），隐藏我们的窗口。
+    LuaEvents.WonderBuiltPopup_Shown.Add(HideKIANAWindow)               --当奇观建成弹出界面显示时（例如完成一个奇观），隐藏我们的窗口。
+    LuaEvents.NaturalDisasterPopup_Shown.Add(HideKIANAWindow)           --当自然灾害弹出界面显示时（例如发生了一次洪水或火山喷发），隐藏我们的窗口。
+    LuaEvents.RockBandMoviePopup_Shown.Add(HideKIANAWindow)             --当摇滚乐队电影弹出界面显示时（摇滚乐队演出时的动画），隐藏我们的窗口。
+end
+Events.LoadGameViewStateDone.Add(Initialize)
+```
+在初始化函数中，我们设置了这三个回调函数：
+```lua
+ContextPtr:SetInputHandler(KianaInputHandler)  -- 设置全局输入监听
+ContextPtr:SetInitHandler(KianaInitHandler) -- 设置界面初始化回调
+ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
+```
+首先，```SetInputHandler(KianaInputHandler)```：这是一个输入处理函数 ，它会告诉游戏引擎，当这个UI界面是当前焦点时，所有的键盘和鼠标输入事件都要先交给 KianaInputHandler 函数处理。这让你可以捕获按键（如ESC键）。这个函数确保了当你的Mod窗口打开时，按下ESC键会关闭你的窗口，并且这个ESC键事件不会继续传递去关闭游戏的其他界面（比如意外退出了游戏主菜单），提供了用户友好的游戏体验。
+
+其次，```SetInitHandler(KianaInitHandler)```：这是一个延迟初始化函数。游戏引擎会在所有UI元素加载完毕、但尚未显示之前调用它。那么为什么我们要在这里调用？ 虽然我们在Initialize()函数里已经调用了SetupKianaLaunchBarButton()，但有些UI操作确保在完全初始化完成后执行会更安全。这里再次确保启动栏按钮被正确创建和设置。
+
+最后，```SetShutdown(KianaShutdownHandler)```：这是UI的析构函数。当Mod界面被关闭或游戏结束时，游戏引擎会自动调用它。在游戏运行期间，通过 InstanceManager:GetInstance() 创建的UI实例会占用内存。如果不手动释放，即使关闭了Mod，这些内存也不会被回收，导致内存泄漏。这个很重要：如果不加上这个函数，那么有可能会导致即使把mod卸了也会触发相应的功能！
+
+最后是LuaEvents，这些是文明6游戏引擎提供的事件系统的一部分，它们代表了游戏中发生的各种特定或随机事件。当游戏中发生这些事件时，调用我们的 HideKIANAWindow 函数，隐藏界面。这是一种非常重要的设计模式，它确保了我们的Mod界面能够与游戏原生界面正确交互和和谐共存，避免UI重叠或冲突。
+
+至此，我们的所有工作就都做完了。最后在Text.xml里面写上翻译文本，这个mod就做完了。但是我们这个UI界面并没有什么实际的功能，下一节我们会给这个UI界面设定一个简单的功能：记录玩家的实时信息。
+
+##### 1.2.2 设计一个记录信息功能
