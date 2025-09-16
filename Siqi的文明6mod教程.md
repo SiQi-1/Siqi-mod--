@@ -660,12 +660,12 @@ REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_8和REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_2启用，
 ##### 1.2.1 设计一个简单面板
 
 本小节我们先从设计一个最简单的UI面板开始，假如我们要设计如下面板：
-![alt text](image1.jpg)
+![alt text](img/image1.jpg)
 
 ###### **1、xml部分：面板内容**
 
 xml部分记录了这个面板上所包涵的所有内容。首先我们来分析一下这个面板上有哪些内容：
-![alt text](image2.jpg)
+![alt text](img/image2.jpg)
 通过观察不难发现，这个面板包括：1. 一个主容器：就是目前我们看到的最外面的边框；主容器的背景图片：使用宗教背景的纹理图片；
 2.一个标题栏（容器），包括：标题内容（教程面板）；
 3.主容器的一个外边框装饰；
