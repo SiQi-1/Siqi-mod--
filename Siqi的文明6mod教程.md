@@ -866,7 +866,7 @@ local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "Laun
 local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
 ```
 这两行就是创建一个新的实例管理器（InstanceManager）对象，专门用于管理我们在xml里面写好的UI实例。
-InstanceManager:new(): 调用 InstanceManager 类的构造函数，创建一个新的管理器，后面跟了两个参数，分别是LaunchKianaItem和LaunchKianaItemButton，其中第一个参数LaunchKianaItem是我们在xml里面创建的面板启动按钮实例的模板名。它告诉管理器：“当你需要创建新实例时，请去查找我们在XML文件中用 <Instance Name="LaunchKianaItem"> 定义的那个模板”。第二个参数LaunchKianaItemButton是根控件的ID，在我们的代码中它是一个按钮的ID：<Button ID="LaunchKianaItemButton"……。它告诉管理器：“在那个模板里，真正的根元素是一个ID为LaunchKianaItemButton的控件（Button），请把它作为这个实例的代表返回给我”。
+InstanceManager:new(): 调用 InstanceManager 类的构造函数，创建一个新的管理器，后面跟了两个参数，分别是LaunchKianaItem和LaunchKianaItemButton，其中第一个参数LaunchKianaItem是我们在xml里面创建的面板启动按钮实例的模板名。它告诉管理器：当你需要创建新实例时，请去查找我们在XML文件中用Instance Name="LaunchKianaItem"定义的那个模板。第二个参数LaunchKianaItemButton是根控件的ID，在我们的代码中它是一个按钮的ID：<Button ID="LaunchKianaItemButton"……。它告诉管理器：“在那个模板里，真正的根元素是一个ID为LaunchKianaItemButton的控件（Button），请把它作为这个实例的代表返回给我”。
 后面local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")同理，就是把启动栏标记点模板也写进去。
 
 >**笔记笔记**
@@ -905,8 +905,10 @@ end
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
 看到这里，或许你会有疑问，为什么这里要定义两个全局变量呢？
+```lua
 local EntryButtonInstance = nil
- local LaunchBarPinInstance = nil
+local LaunchBarPinInstance = nil
+```
 其实这是一个引用变量。它的目的是为了后续存储从m_LaunchItemInstanceManager函数里面生成出来的第一个按钮实例，在下面的SetupKianaLaunchBarButton()函数中，你会看到这行代码：EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)，这时，EntryButtonInstance 就不再是 nil，而是一个包含真实UI按钮的对象，程序可以通过它来操作这个具体的按钮（如注册点击事件，判断按钮可见性，等等）。
 
 举个例子，比如说我们现在给这个按钮增加一个可见性检查，只有当玩家选择阿基坦的埃莉诺（法国）这个领袖的时候，按钮才可见，代码如下：
