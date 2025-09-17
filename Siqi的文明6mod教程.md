@@ -867,8 +867,8 @@ local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "Laun
 local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
 ```
 这两行就是创建一个新的实例管理器（InstanceManager）对象，专门用于管理我们在xml里面写好的UI实例。
-InstanceManager:new(): 调用 InstanceManager 类的构造函数，创建一个新的管理器，后面跟了两个参数，分别是LaunchKianaItem和LaunchKianaItemButton，其中第一个参数LaunchKianaItem是我们在xml里面创建的面板启动按钮实例的模板名。它告诉管理器：当你需要创建新实例时，请去查找我们在XML文件中用Instance Name="LaunchKianaItem"定义的那个模板。第二个参数LaunchKianaItemButton是根控件的ID，在我们的代码中它是一个按钮的ID：<Button ID="LaunchKianaItemButton"……。它告诉管理器：“在那个模板里，真正的根元素是一个ID为LaunchKianaItemButton的控件（Button），请把它作为这个实例的代表返回给我”。
-后面local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")同理，就是把启动栏标记点模板也写进去。
+`InstanceManager:new()`: 调用 InstanceManager 类的构造函数，创建一个新的管理器，后面跟了两个参数，分别是`LaunchKianaItem`和`LaunchKianaItemButton`，其中第一个参数`LaunchKianaItem`是我们在xml里面创建的面板启动按钮实例的模板名。它告诉管理器：当你需要创建新实例时，请去查找我们在XML文件中用`Instance Name="LaunchKianaItem"`定义的那个模板。第二个参数`LaunchKianaItemButton`是根控件的ID，在我们的代码中它是一个按钮的ID：<Button ID="LaunchKianaItemButton"……。它告诉管理器：“在那个模板里，真正的根元素是一个ID为LaunchKianaItemButton的控件（Button），请把它作为这个实例的代表返回给我”。
+后面`local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")`同理，就是把启动栏标记点模板也写进去。
 
 >**笔记笔记**
 >所以，一般我们写xml的时候，都在<Instance></Instance>里面再套一层容器，比如这里就是<Button></Button>，有些代码里面会是<Container></Container>,这样我们在lua里面调用这个实例的时候，就会把<Instance>里面定义的所有内容全都包含进去。
@@ -910,7 +910,7 @@ Events.LoadGameViewStateDone.Add(Initialize)
 local EntryButtonInstance = nil
 local LaunchBarPinInstance = nil
 ```
-其实这是一个引用变量。它的目的是为了后续存储从m_LaunchItemInstanceManager函数里面生成出来的第一个按钮实例，在下面的SetupKianaLaunchBarButton()函数中，你会看到这行代码：EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)，这时，EntryButtonInstance 就不再是 nil，而是一个包含真实UI按钮的对象，程序可以通过它来操作这个具体的按钮（如注册点击事件，判断按钮可见性，等等）。
+其实这是一个引用变量。它的目的是为了后续存储从`m_LaunchItemInstanceManager`函数里面生成出来的第一个按钮实例，在下面的`SetupKianaLaunchBarButton()`函数中，你会看到这行代码：`EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)`，这时，`EntryButtonInstance`就不再是 nil，而是一个包含真实UI按钮的对象，程序可以通过它来操作这个具体的按钮（如注册点击事件，判断按钮可见性，等等）。
 
 举个例子，比如说我们现在给这个按钮增加一个可见性检查，只有当玩家选择阿基坦的埃莉诺（法国）这个领袖的时候，按钮才可见，代码如下：
 
@@ -955,8 +955,9 @@ end
 --后续代码……
 ```
 在KianaButtonIsHide()这个函数中，我们直接写上：
-EntryButtonInstance.LaunchKianaItemButton:SetHide(true);
-EntryButtonInstance.LaunchKianaItemButton:SetHide(false);
+`EntryButtonInstance.LaunchKianaItemButton:SetHide(true);`
+
+`EntryButtonInstance.LaunchKianaItemButton:SetHide(false);`
 来判断按钮是否可见。
 
 到这里还没结束，虽然我们定义了打开界面的代码逻辑，但是并没有写关闭界面的代码逻辑，这个时候进入游戏，你会发现只要打开这个界面就关不掉了。所以我们还要继续添加关闭界面的代码逻辑。此时你应该会想到，我们在xml里面定义了一个关闭按钮：ID为CloseButton，位于右上角。接下来我们为这个按钮写上关闭界面的功能，代码如下：
@@ -1056,14 +1057,380 @@ ContextPtr:SetInputHandler(KianaInputHandler)  -- 设置全局输入监听
 ContextPtr:SetInitHandler(KianaInitHandler) -- 设置界面初始化回调
 ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
 ```
-首先，SetInputHandler(KianaInputHandler)：这是一个输入处理函数 ，它会告诉游戏引擎，当这个UI界面是当前焦点时，所有的键盘和鼠标输入事件都要先交给 KianaInputHandler 函数处理。这让你可以捕获按键（如ESC键）。这个函数确保了当你的Mod窗口打开时，按下ESC键会关闭你的窗口，并且这个ESC键事件不会继续传递去关闭游戏的其他界面（比如意外退出了游戏主菜单），提供了用户友好的游戏体验。
+首先，`SetInputHandler(KianaInputHandler)`：这是一个输入处理函数 ，它会告诉游戏引擎，当这个UI界面是当前焦点时，所有的键盘和鼠标输入事件都要先交给`KianaInputHandler`函数处理。这让你可以捕获按键（如ESC键）。这个函数确保了当你的Mod窗口打开时，按下ESC键会关闭你的窗口，并且这个ESC键事件不会继续传递去关闭游戏的其他界面（比如意外退出了游戏主菜单），提供了用户友好的游戏体验。
 
-其次，SetInitHandler(KianaInitHandler)：这是一个延迟初始化函数。游戏引擎会在所有UI元素加载完毕、但尚未显示之前调用它。那么为什么我们要在这里调用？ 虽然我们在Initialize()函数里已经调用了SetupKianaLaunchBarButton()，但有些UI操作确保在完全初始化完成后执行会更安全。这里再次确保启动栏按钮被正确创建和设置。
+其次，`SetInitHandler(KianaInitHandler)`：这是一个延迟初始化函数。游戏引擎会在所有UI元素加载完毕、但尚未显示之前调用它。那么为什么我们要在这里调用？ 虽然我们在Initialize()函数里已经调用了`SetupKianaLaunchBarButton()`，但有些UI操作确保在完全初始化完成后执行会更安全。这里再次确保启动栏按钮被正确创建和设置。
 
-最后，SetShutdown(KianaShutdownHandler)：这是UI的析构函数。当Mod界面被关闭或游戏结束时，游戏引擎会自动调用它。在游戏运行期间，通过 InstanceManager:GetInstance() 创建的UI实例会占用内存。如果不手动释放，即使关闭了Mod，这些内存也不会被回收，导致内存泄漏。这个很重要：如果不加上这个函数，那么有可能会导致即使把mod卸了也会触发相应的功能！
+最后，`SetShutdown(KianaShutdownHandler)`：这是UI的析构函数。当Mod界面被关闭或游戏结束时，游戏引擎会自动调用它。在游戏运行期间，通过`InstanceManager:GetInstance()`创建的UI实例会占用内存。如果不手动释放，即使关闭了Mod，这些内存也不会被回收，导致内存泄漏。这个很重要：如果不加上这个函数，那么有可能会导致即使把mod卸了也会触发相应的功能！
 
-最后是LuaEvents，这些是文明6游戏引擎提供的事件系统的一部分，它们代表了游戏中发生的各种特定或随机事件。当游戏中发生这些事件时，调用我们的 HideKIANAWindow 函数，隐藏界面。这是一种非常重要的设计模式，它确保了我们的Mod界面能够与游戏原生界面正确交互和和谐共存，避免UI重叠或冲突。
+最后是`LuaEvents`，这些是文明6游戏引擎提供的事件系统的一部分，它们代表了游戏中发生的各种特定或随机事件。当游戏中发生这些事件时，调用我们的`HideKIANAWindow`函数，隐藏界面。这是一种非常重要的设计模式，它确保了我们的Mod界面能够与游戏原生界面正确交互和和谐共存，避免UI重叠或冲突。
 
 至此，我们的所有工作就都做完了。最后在Text.xml里面写上翻译文本，这个mod就做完了。但是我们这个UI界面并没有什么实际的功能，下一节我们会给这个UI界面设定一个简单的功能：记录玩家的实时信息。
 
-##### 1.2.2 设计一个记录信息功能
+##### 1.2.2 设计记录信息面板
+
+本节我们将尝试设计一个记录实时信息的面板。比如，我们现在要设计一个面板，记录玩家建造单位的详细信息，格式为：第（1）回合：您的城市（2）：训练了一个（3）。其中1记录玩家的当前回合数，2记录玩家建造单位的城市，3记录玩家建造单位的具体类型。
+
+最终效果如下：
+
+![alt text](img/image3.jpg)
+
+首先，我们先写xml的部分。在上一节中，我们设计了一个简单的面板，这一节我们在此基础上，再添加一些代码。通过观察上面的游戏截图不难看出，我们的记录面板在另一个标签页上，而且在该标签页内有一个滚动面板，在滚动面板的右边还有一个滚动条。我们先写这部分的代码。
+在原来的标签页内容的总父容器里面：
+```xml        
+        <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
+            <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
+                <Label ID="NoteLabel1" Offset="20,60" Anchor="L,T" WrapWidth="850" Style="FontFlair20" FontStyle="shadow" ColorSet="ShellHeader" String="LOC_KIANA_FIRST_PAGE"/>
+            </Grid>
+        </Container>
+```
+再次添加一个 Grid 容器，这个容器里面包括一个滚动面板和一个滚动条，具体代码如下：
+```xml      
+            <Grid ID="RemarkAllUnitsText" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >  
+                <ScrollPanel ID="RemarkTextScrollPanel" Anchor="L,T" Size="parent,parent" Offset="0,0" AutoSizePadding="2,0" Style="ScrollPanelWithRightBar">
+                    <Stack ID="RemarkTextStack" Anchor="L,T" Offset="10,0" StackGrowth="Down"/>
+                </ScrollPanel>
+            </Grid>
+```
+其中，ScrollPanel 表示滚动面板， Style="ScrollPanelWithRightBar"表示这个滚动面板自带滚动条，Stack表示这个面板里面放置了一个容器，我们的目的就是把要记录的信息填写到这个Stack容器里面，堆叠方式为StackGrowth="Down"：自上而下依次堆叠。
+
+>**笔记笔记**
+>有些滚动面板如果不写自带滚动条的话，需要在里面把滚动条写上，类似下面这样：
+>```xml
+>           <ScrollPanel ID="RemarkAllUnitsText" Vertical="1" Size="parent-5,parent-100" AutoScrollBar="1" Anchor="L,T" Offset="3,55">
+>               <Stack ID="RemarkTextStack" StackGrowth="Down" Padding="2"  Anchor="C,T" />
+>               <ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />
+>           </ScrollPanel>
+>```
+>其中Vertical="1"表示垂直滚动，AutoScrollBar="1"表示当内容超出时自动显示滚动条， `<ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />` 这部分就是滚动条的相关代码，ScrollBar表示滚动条。
+
+然后我们在ID为TabButtons的Stack容器里面写上我们的标签页选择按钮，代码如下：
+```xml      
+            <GridButton ID="SelectTab_RemarkAllUnitsText" Style="TabButton" Size="100,35">
+                <Label Style="FontFlair14" String="LOC_REMARK_ALL_UNITS_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>
+            </GridButton>
+```
+最后，我们的面板包含的所有内容的代码看起来是这样：
+```xml      
+    <Container ID="MainContainer" Anchor="C,C" Size="900,600" Offset="0,0">
+        <Image ID="ModalBG" Size="parent,parent" Texture="Religion_BG" StretchMode="Tile" ConsumeMouse="1"/>
+        <Grid Size="parent,40" Texture="Controls_SubHeader2" ConsumeMouse="1" SliceCorner="20,2" SliceTextureSize="40,40">
+          <Label ID="ScreenTitle" String="LOC_KIANA_WINDOW_TITLE" Anchor="C,C" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader" />
+        </Grid> 
+        <Grid Offset="-8,-8" Size="parent+16,parent+16" Style="ScreenFrame"/>
+        <Button ID="CloseButton" Anchor="R,T" Size="44,44" Texture="Controls_CloseLarge"/>
+        <Tab ID="TabControl" Anchor="L,T" Size="parent-40, 520" Offset="0,30">
+            <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
+                <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
+                    <Label ID="NoteLabel1" Offset="20,60" Anchor="L,T" WrapWidth="850" Style="FontFlair20" FontStyle="shadow" ColorSet="ShellHeader" String="LOC_KIANA_FIRST_PAGE"/>
+                </Grid>
+                <Grid ID="RemarkAllUnitsText" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >  
+                    <ScrollPanel ID="RemarkTextScrollPanel" Anchor="L,T" Size="parent,parent" Offset="0,0" AutoSizePadding="2,0" Style="ScrollPanelWithRightBar">
+                        <Stack ID="RemarkTextStack" Anchor="L,T" Offset="10,0" StackGrowth="Down"/>
+                    </ScrollPanel>
+                </Grid>
+            </Container>
+            <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
+                <GridButton ID="SelectTab_FirstPage" Style="TabButton" Size="100,35">
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>
+                </GridButton>
+                <GridButton ID="SelectTab_RemarkAllUnitsText" Style="TabButton" Size="100,35">
+                    <Label Style="FontFlair14" String="LOC_REMARK_ALL_UNITS_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>
+                </GridButton>
+            </Stack>
+        </Tab>
+    </Container>  
+```
+由于我们要记录的信息是动态生成的，所以我们要在xml里面指定一个文本，当我们训练完成单位的时候，在lua端为这个文本显示具体的内容。由于这个文本的内容是动态生成的，所以这里我们的节点要写成`<Instance>`，代码如下：
+```xml
+    <Instance Name="RemarkTextItem">
+        <Stack ID="RemarkTextItemStack" Size="parent-55,40" Anchor="L,C" Offset="0,0" StackGrowth="Down">
+            <Label ID="RemarkUnitsText" Anchor="L,C" Size="parent,parent" Offset="5,15" Style="FontFlair18" FontStyle="glow" ColorSet="ShellHeader"/>
+        </Stack>
+    </Instance>
+```
+其中的Label就是我们的文本，后续我们会在lua端调用它，让它显示我们需要的文本内容。
+
+至此xml部分就写完了，接下来是lua部分。
+
+关于lua的写法，首先我们要明白，我们的目的是我们每次训练完成一个单位，面板上就会记录我们在第几回合，在哪个城市，训练了什么类型的单位。所以，这个文本的记录需要一个事件来触发，这个事件就是Events.CityProductionCompleted，即城市生产完成时。然后当我们训练一个单位时，这个事件会传递五个参数：
+```lua
+Events.CityProductionCompleted(playerID [number], cityID [number], iConstructionType [number], unitID [number], bCancelled [boolean])
+```
+iConstructionTyp == 0 表示单位生产完成，然后我们就可以写触发文本的操作，为RemarkUnitsText设置合适的文本即可。
+
+但是这有一个问题，就是我们所填写的这个文本不能长久保留，如果我们直接为RemarkUnitsText设置文本，那么游戏在存档和读档的时候，这个文本的内容就丢失了，不会被长久保留下来。为此，我们需要一个办法，让我们所设置的文本在读档的时候不会丢失，可以在一局游戏中一直存在。那么最常用的办法就是设置property，我们可以设置property为一个表格，把我们要显示的文本储存在这个表中，每次我们单位训练完成时，往这个表中插入我们需要显示的文本，然后在我们每次打开面板的时候调用这个表，把其中的每一条信息赋值给RemarkUnitsText，这样才能把里面记录的文本逐条显示出来。
+
+首先我们先定义一个表格：
+```lua
+function KianaCityUnitsCompleted(playerID, cityID, iConstructionType, itemID, bCancelled)
+    local pPlayer = Players[playerID];
+    local NewString = pPlayer:GetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING") or {}
+end
+
+function Initialize()
+    Events.CityProductionCompleted.Add(KianaCityUnitsCompleted)
+end
+Events.LoadGameViewStateDone.Add(Initialize)
+```
+然后设置我们需要填写的文本内容：
+```lua
+    local pCity = CityManager.GetCity(playerID, cityID);
+    local cityname = pCity:GetName()  --获取城市名字
+    local nowturn = Game.GetCurrentGameTurn() -- 获取当前回合数
+    local CurrentTurn = Locale.Lookup('LOC_CURRENT_TURN_NAME', nowturn)  --第（）回合
+    local YourCity = Locale.Lookup('LOC_YOUR_CITY_NAME', cityname)  --您的城市（）训练了
+    if iConstructionType == 0 then  --如果是单位
+        local UnitName = Locale.Lookup(GameInfo.Units[itemID].Name)  --区域名称     
+        local str = (CurrentTurn .. " " .. YourCity .. " " .. UnitName) -- 获取文本
+```
+这样，str 就是我们需要显示的文本，接下来我们要把这个文本储存到NewString这个表中，可以这样写：
+```lua
+    table.insert(NewString, str) -- 将文本添加到玩家属性中
+    pPlayer:SetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING", NewString) -- 更新玩家属性
+```
+
+>**注意脚下**
+>
+>```lua
+>       pPlayer:SetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING", NewString) 
+>```
+>注意：这个代码中`pPlayer:SetProperty`只能写在gp环境里面，在UI环境里面是不能`SetProperty`的，UI环境只能读取Property，即UI环境下只能`pPlayer:GetProperty`。所以我们上面的代码只能写在gp环境里面，然后在UI端读取它们。
+
+最后加上领袖的判断，这里以阿基坦的埃莉诺（法国）为例，我们完整的代码应该是这样的：
+```lua
+local ELEANOR_FRANCE = "LEADER_ELEANOR_FRANCE"
+
+function KianaCityUnitsCompleted(playerID, cityID, iConstructionType, itemID, bCancelled)
+    local pPlayer = Players[playerID];
+    local pPlayerConfig = PlayerConfigurations[playerID];
+    if (pPlayerConfig:GetLeaderTypeName() ~= ELEANOR_FRANCE) then
+        return false
+    end
+    local pCity = CityManager.GetCity(playerID, cityID);
+    local cityname = pCity:GetName()  --获取城市名字
+    local nowturn = Game.GetCurrentGameTurn() -- 获取当前回合数
+    local CurrentTurn = Locale.Lookup('LOC_CURRENT_TURN_NAME', nowturn)  --第（）回合
+    local YourCity = Locale.Lookup('LOC_YOUR_CITY_NAME', cityname)  --您的城市（）训练了
+    if iConstructionType == 0 then
+        local UnitName = Locale.Lookup(GameInfo.Units[itemID].Name)  --区域名称     
+        local str = (CurrentTurn .. " " .. YourCity .. " " .. UnitName) -- 获取文本
+        local NewString = pPlayer:GetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING") or {}
+        table.insert(NewString, str) -- 将文本添加到玩家属性中
+        pPlayer:SetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING", NewString) -- 更新玩家属性
+    end
+end
+
+function Initialize()
+    Events.CityProductionCompleted.Add(KianaCityUnitsCompleted)
+end
+Events.LoadGameViewStateDone.Add(Initialize)
+```
+
+好了，gp端存储文本内容的代码我们就写好了，接下来只需要在UI端读取并显示就可以了。
+
+首先，我们需要调用InstanceManager类的构造函数，创建一个新的管理器，这样我们才能对xml里面定义的RemarkUnitsText这个文本进行操作。还记得上一节我们提到的这个函数：InstanceManager:new() 吗？当时是这样的：
+```lua
+local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "LaunchKianaItemButton")
+local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
+```
+我们当时说了，这个函数包括两个参数，第一个参数：LaunchKianaItem 是我们在xml里面创建的面板启动按钮实例的模板名，第二个参数LaunchKianaItemButton 是根控件的ID。这里我们并没有写这个按钮应该绑定到哪个控件上，因为在后面绑定UI控件的初始化函数中已经写了：
+```lua
+    local ctrl = ContextPtr:LookUpControl("/InGame/LaunchBar/ButtonStack")  
+```
+上面是我们绑定UI控件的路径，所以我们在InstanceManager:new()这个函数里面没有写它应该被绑定到哪个控件上。但是这里我们需要显示的文本并没有指定需要绑定的控件，根据我们在xml里面写的代码：
+```xml        
+        <Grid ID="RemarkAllUnitsText" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >  
+            <ScrollPanel ID="RemarkTextScrollPanel" Anchor="L,T" Size="parent,parent" Offset="0,0" AutoSizePadding="2,0" Style="ScrollPanelWithRightBar">
+                <Stack ID="RemarkTextStack" Anchor="L,T" Offset="10,0" StackGrowth="Down"/>
+            </ScrollPanel>
+        </Grid>
+```
+我们希望文本应该要绑定到 Stack ID="RemarkTextStack" 的控件上。所以这个时候，我们就要用到这个函数的第三个参数：指定父控件。这里我们不需要写一个新路径上去，因为这个UI面板是我们自己写的，不是官方的，这里我们只需要这样写：Controls.RemarkTextStack就行了，即Controls.后面接上我们需要绑定的控件的ID即可：
+```lua
+local m_LaunchItemRemarkInstanceManager = InstanceManager:new("RemarkTextItem", "RemarkTextItemStack",Controls.RemarkTextStack)
+```
+这样我们就为RemarkTextItemStack这个容器绑定了父控件。后面只需这样调用：
+```lua
+        local RemarkUnitsInst = m_LaunchItemRemarkInstanceManager:GetInstance()
+```
+即可显示我们的内容。
+
+注意，由于我们的文本内容是实时更新的，所以每次我们打开UI界面刷新文本内容时都可能会不同，所以我们在打开UI界面的时候，需要先清除之前生成过的UI实例，然后再创建一个新的UI实例，不然文本内容就会错乱。我们在函数的开头这样写：
+```lua
+function RefreshALLUnitsText()
+    m_LaunchItemRemarkInstanceManager:ResetInstances() -- 重置实例管理器  
+end
+```
+其中ResetInstances()表示重置实例管理器，清除之前生成过的UI实例。然后我们获取Property中的记录文本信息：
+```lua
+function RefreshALLUnitsText()
+    m_LaunchItemRemarkInstanceManager:ResetInstances() -- 重置实例管理器  
+    local RewardString = m_pCurrentPlayer:GetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING") or {} 
+end
+```
+其中RewardString是一个表，里面记录了我们要显示的所有内容。接下来，我们要做一个表为空的处理方式；即我们还没有训练任何一个单位时，这个时候RewardString是一个空表，我们这样处理：
+```lua
+    if #RewardString == 0 then
+        local RemarkUnitsInst = m_LaunchItemRemarkInstanceManager:GetInstance()
+        RemarkUnitsInst.RemarkUnitsText:LocalizeAndSetText(Locale.Lookup('LOC_KIANA_ALL_CITIES_UNCOMPLETE_UNITS')) -- 如果没有训练任何单位，就在面板上显示默认文本：即LOC_KIANA_ALL_CITIES_UNCOMPLETE_UNITS
+    end
+```
+`LOC_KIANA_ALL_CITIES_UNCOMPLETE_UNITS`我们需要在text文件里面翻译一下，这里我写的是：“你目前还没有训练任何单位！“  见下图：
+
+![alt text](img/image4.jpg)
+
+然后当表不为空的时候，把文本逐条显示出来就可以了：
+```lua
+    for i = 1, #RewardString do
+        local RemarkUnitsInst = m_LaunchItemRemarkInstanceManager:GetInstance()
+        local str = RewardString[i] 
+        RemarkUnitsInst.RemarkUnitsText:LocalizeAndSetText(str)
+    end
+```
+最后写上这个函数的刷新时机：当我们打开面板的时候调用这个函数，即可显示最新的文本信息，在function ShowKIANAWindow() 函数里面这样写：
+```lua
+function ShowKIANAWindow() 
+    ContextPtr:SetHide(false)  -- 显示窗口
+    RefreshALLUnitsText()  --刷新文本
+    UI.PlaySound("UI_Screen_Open") -- 播放打开音效
+end
+```
+最后我们的UI部分的代码看起来是这样的：
+```lua
+include("InstanceManager");  -- 引入游戏引擎的实例管理系统
+
+local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "LaunchKianaItemButton")
+local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
+local m_LaunchItemRemarkInstanceManager = InstanceManager:new("RemarkTextItem", "RemarkTextItemStack",Controls.RemarkTextStack)
+--======================================================================================================================
+local EntryButtonInstance = nil  -- 启动栏按钮实例（后续通过GetInstance()赋值）
+local LaunchBarPinInstance = nil  -- 启动栏标记点实例
+--===================================================================================================================
+local m_iCurrentPlayerID = Game.GetLocalPlayer() -- 当前玩家ID
+local m_pCurrentPlayer = Players[m_iCurrentPlayerID]  -- 当前玩家对象
+local ELEANOR_FRANCE = "LEADER_ELEANOR_FRANCE"
+
+function KianaIsPlayerLeader(playerID, leaderType)
+    local pPlayerConfig = PlayerConfigurations[playerID]
+    if pPlayerConfig == nil then return false; end
+   if pPlayerConfig:GetLeaderTypeName() == leaderType then
+        return true
+    else
+        return false
+    end
+end
+
+function KianaButtonIsHide()
+    if not KianaIsPlayerLeader(m_iCurrentPlayerID, ELEANOR_FRANCE) then
+        EntryButtonInstance.LaunchKianaItemButton:SetHide(true);
+    else
+        EntryButtonInstance.LaunchKianaItemButton:SetHide(false);
+    end
+end
+
+function SetupKianaLaunchBarButton()  
+    local ctrl = ContextPtr:LookUpControl("/InGame/LaunchBar/ButtonStack")
+    if ctrl == nil then-- 兼容性检查
+        return
+    end
+    if EntryButtonInstance == nil then  -- 单例模式：避免重复创建
+        EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)    -- 创建按钮实例并挂载到游戏UI
+        LaunchBarPinInstance = m_LaunchBarPinInstanceManager:GetInstance(ctrl)
+        KianaButtonIsHide()
+        EntryButtonInstance.LaunchKianaItemButton:RegisterCallback(Mouse.eLClick,    -- 绑定点击事件：打开窗口
+        function()
+            ShowKIANAWindow()
+        end)
+    end
+end
+
+function RefreshALLUnitsText()
+    m_LaunchItemRemarkInstanceManager:ResetInstances() -- 重置实例管理器  
+    local RewardString = m_pCurrentPlayer:GetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING") or {} -- 获取玩家属性中的奖励文本
+    if #RewardString == 0 then
+        local RemarkUnitsInst = m_LaunchItemRemarkInstanceManager:GetInstance()
+        RemarkUnitsInst.RemarkUnitsText:LocalizeAndSetText(Locale.Lookup('LOC_KIANA_ALL_CITIES_UNCOMPLETE_UNITS')) -- 如果没有训练任何单位，就在面板上显示默认文本：即LOC_KIANA_ALL_CITIES_UNCOMPLETE_UNITS
+    end
+    for i = 1, #RewardString do
+        local RemarkUnitsInst = m_LaunchItemRemarkInstanceManager:GetInstance()
+        local str = RewardString[i] 
+        RemarkUnitsInst.RemarkUnitsText:LocalizeAndSetText(str)
+    end
+end
+
+function HideKIANAWindow() --- 关闭界面
+    if not ContextPtr:IsHidden() then   -- 检查窗口是否已显示
+        ContextPtr:SetHide(true) -- 隐藏窗口
+        UI.PlaySound("UI_Screen_Close") -- 播放关闭音效
+    end
+end
+
+function ShowKIANAWindow() -- 打开界面
+    ContextPtr:SetHide(false)  -- 显示窗口
+    RefreshALLUnitsText()
+    UI.PlaySound("UI_Screen_Open") -- 播放打开音效
+end
+
+function KianaInputHandler(uiMsg, wParam, lParam)  --输入处理 InputHandler()
+    if (uiMsg == KeyEvents.KeyUp) then-- 检测按键事件
+        if (wParam == Keys.VK_ESCAPE) then-- 如果是ESC键
+            if Controls.MainContainer:IsVisible() then
+                HideKIANAWindow() -- 关闭窗口
+                return true   -- 阻止事件继续传递
+            end
+        end
+    end
+    return false -- 其他按键不拦截
+end
+
+function KianaInitHandler()  --初始化逻辑 InitHandler()
+    SetupKianaLaunchBarButton()   -- 初始化游戏主界面的入口按钮
+end
+
+function KianaShutdownHandler()  --- 关闭时资源清理
+        -- 1. 释放主界面入口按钮实例（避免内存泄漏）
+    if EntryButtonInstance ~= nil then
+        m_LaunchItemInstanceManager:ReleaseInstance(EntryButtonInstance)
+    end
+        -- 2. 释放入口按钮的装饰标记实例
+    if LaunchBarPinInstance ~= nil then
+        m_LaunchBarPinInstanceManager:ReleaseInstance(LaunchBarPinInstance)
+    end
+end
+
+function KianaLoadGameViewStateDone()
+    SetupKianaLaunchBarButton()
+    KianaButtonIsHide()
+    ContextPtr:SetInputHandler(KianaInputHandler)  -- 设置全局输入监听
+    ContextPtr:SetInitHandler(KianaInitHandler) -- 设置界面初始化回调
+    ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
+    Controls.CloseButton:RegisterCallback(Mouse.eLClick, HideKIANAWindow)  -- 关闭按钮
+
+    LuaEvents.DiplomacyActionView_HideIngameUI.Add(HideKIANAWindow)
+    LuaEvents.EndGameMenu_Shown.Add(HideKIANAWindow)
+    LuaEvents.FullscreenMap_Shown.Add(HideKIANAWindow)
+    LuaEvents.NaturalWonderPopup_Shown.Add(HideKIANAWindow)
+    LuaEvents.ProjectBuiltPopup_Shown.Add(HideKIANAWindow)
+    LuaEvents.Tutorial_ToggleInGameOptionsMenu.Add(HideKIANAWindow)
+    LuaEvents.WonderBuiltPopup_Shown.Add(HideKIANAWindow)
+    LuaEvents.NaturalDisasterPopup_Shown.Add(HideKIANAWindow)
+    LuaEvents.RockBandMoviePopup_Shown.Add(HideKIANAWindow)
+end
+Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
+```
+
+至此，所有的代码就都写完了！恭喜你，已经学会了记录玩家的实时信息！（注意我们在SetProperty的时候，那部分代码要在gp环境下加载）
+
+同理，我们也可以按照该方法记录玩家建造建筑的信息，完成项目的信息，等等。
+
+>**注意脚下**
+>但是有一个地方要注意，就是我们在建造区域的时候，这个事件：Events.CityProductionCompleted.Add()会被触发两次，这是官方的bug，如果我们要记录我们建造区域的信息，那么使用这个事件监听，我们的界面就会变成这样：
+>
+>![alt text](img/image5.jpg)
+>
+>所以目前也没有什么好的解决办法。。。
+
+下一节我们会在UI界面上创建按钮，并实现一些简单的功能。
+
+##### 1.2.3 设计按钮功能
