@@ -1,4 +1,3 @@
-
 # 糸七 的文明6mod教程
 
 ## 前言
@@ -18,7 +17,6 @@
 本文不会从最基础的知识讲起，默认你已经学习过以下教程：
 
 - Hemmelfort的[Github](https://github.com/Hemmelfort/Civ6ModdingNotes)和[Gitee](https://gitee.com/Hemmelfort/Civ6ModdingNotes)，以及b站[视频](https://www.bilibili.com/video/BV1VW411U7tN/)和专栏。
-
 - 枫叶的[文明6lua教程](https://github.com/FYMapleLeaves/ml-civ6-lua-tutorial/blob/main/%E6%9E%AB%E5%8F%B6%E7%9A%84%E6%96%87%E6%98%8E6lua%E6%95%99%E7%A8%8B.md)。
 
 文明6常用目录
@@ -29,7 +27,6 @@
 - Steam创意工坊mod文件目录：**\Steam\steamapps\workshop\content\289070**
 
 ### 1. lua
-
 
 #### 1.1 UI
 
@@ -51,6 +48,7 @@ UI.lua
 ```
 
 然后再在.modinfo这样写：
+
 ```xml
 <AddUserInterfaces id="UI">
   	<Properties>
@@ -60,8 +58,8 @@ UI.lua
 </AddUserInterfaces>
 
 ```
-加载.xml文件后会自动加载同名的.lua文件
 
+加载.xml文件后会自动加载同名的.lua文件
 
 ##### 1.1.1 单位按钮
 
@@ -83,11 +81,11 @@ Siqi_UnitPanel.xml这么写：
 	</Grid>
 </Context>
 ```
-> 通常而言，这个xml所表示的单位按钮长这样：![alt text](img/Imp1.png)
-> ```<Grid></Grid>```是最外面的矩形框架，其参数定义了其的位置，大小，样式
-> ```<Button></Button>```是中间的圆形按钮，其参数定义了其的位置，大小，样式
-> ```<Image></Image>```是最里面的收割图标，Icon是对应图标的名字。
 
+> 通常而言，这个xml所表示的单位按钮长这样：![alt text](img/Imp1.png)
+> ``<Grid></Grid>``是最外面的矩形框架，其参数定义了其的位置，大小，样式
+> ``<Button></Button>``是中间的圆形按钮，其参数定义了其的位置，大小，样式
+> ``<Image></Image>``是最里面的收割图标，Icon是对应图标的名字。
 
 大部分参数无需理会，已经是大佬做好了的，通常只需关注Icon即可，选择合适的图标来让你的单位按钮更具特色吧。
 
@@ -100,10 +98,13 @@ Siqi_UnitPanel.xml这么写：
 对应的文本是什么？
 按了之后会发生什么？
 ```
+
 为了能更好的进行教程，我们来设计一个简单的小能力：
+
 ```
 建造者清除领土内的奢侈品资源，并且获得科技或者文化。
 ```
+
 现在，我们按照上面的思路来一步步完成代码吧：
 
 ###### **1、初始化**
@@ -128,35 +129,44 @@ Events.LoadGameViewStateDone.Add(Initialize)
 
 ```
 
->笔记笔记：如果你按照"/InGame/UnitPanel/StandardActionsStack"来寻找并翻开找到官方文件UI/Panels/UnitPanel.xml，你会发现这个，也就是我们所绑定的UI控件。
->```xml
-><!-- ACTIONS PANEL -->
-><Stack					ID="ActionsStack" Anchor="R,T" Offset="2,-3" AnchorSide="I,O" StackGrowth="Left" StackPadding="2">
->	<Stack				ID="StandardActionsStack" Anchor="C,B" StackGrowth="Right" Padding="2" ConsumeMouse="1" />
+> 笔记笔记：如果你按照"/InGame/UnitPanel/StandardActionsStack"来寻找并翻开找到官方文件UI/Panels/UnitPanel.xml，你会发现这个，也就是我们所绑定的UI控件。
+>
+> ```xml
+> <!-- ACTIONS PANEL -->
+> <Stack					ID="ActionsStack" Anchor="R,T" Offset="2,-3" AnchorSide="I,O" StackGrowth="Left" StackPadding="2">
+>   <Stack				ID="StandardActionsStack" Anchor="C,B" StackGrowth="Right" Padding="2" ConsumeMouse="1" />
 >         <Grid			        ID="ExpandSecondaryActionGrid" Anchor="R,B" Size="auto,41" AutoSizePadding="6,0" Texture="SelectionPanel_ActionGroupSlot" SliceCorner="5,19" SliceSize="1,1" SliceTextureSize="12,41" ConsumeMouse="1" Alpha="0.75">
 >               ......（此处省略）
->	</Grid>
-></Stack>
->```
->将会发现我们绑在了一个Stack控件里，Stack是用来排列和放置控件的容器，StackGrowth为Right时，将会按照从左到右的顺序依次放置其中的控件
->然而我们绑定的控件```<Stack				ID="StandardActionsStack" Anchor="C,B" StackGrowth="Right" Padding="2" ConsumeMouse="1" />```并没有出现其他按钮出现，这是怎么回事呢？
->如果你挖掘一下，就能发现，下面的部分似乎与上面的StandardActionsStack绑定到一起了。Instance的用法在此处先不多说，容易发现，下面的Button和Image是和上面我们的按钮定义是非常相似的，而这个就是官方的单位按钮。
->```xml
+>   </Grid>
+> </Stack>
+> ```
+>
+> 将会发现我们绑在了一个Stack控件里，Stack是用来排列和放置控件的容器，StackGrowth为Right时，将会按照从左到右的顺序依次放置其中的控件
+> 然而我们绑定的控件 ``<Stack				ID="StandardActionsStack" Anchor="C,B" StackGrowth="Right" Padding="2" ConsumeMouse="1" />``并没有出现其他按钮出现，这是怎么回事呢？
+> 如果你挖掘一下，就能发现，下面的部分似乎与上面的StandardActionsStack绑定到一起了。Instance的用法在此处先不多说，容易发现，下面的Button和Image是和上面我们的按钮定义是非常相似的，而这个就是官方的单位按钮。
+>
+> ```xml
 >         <!-- Action definition -->
->	<Instance Name="UnitActionInstance" >
->		<Button		ID="UnitActionButton" Anchor="L,T" Size="44,53" Texture="UnitPanel_ActionButton">
->			<Image	ID="UnitActionIcon"		Anchor="C,C" Offset="0,-2" Size="38,38"  Texture="UnitActions"/>
->		</Button>
->	</Instance>
->```
->也就是说，我们的操作其实就是把我们自己写的按钮，绑定到官方的StandardActionsStack控件上
->```lua
->local pContext = ContextPtr:LookUpControl("/InGame/UnitPanel/StandardActionsStack")
->Controls.UnitGrid:ChangeParent(pContext)
->```
->现在再看这串代码，应该就能明白，我们实际上做了什么。
+>   <Instance Name="UnitActionInstance" >
+>   	<Button		ID="UnitActionButton" Anchor="L,T" Size="44,53" Texture="UnitPanel_ActionButton">
+>   		<Image	ID="UnitActionIcon"		Anchor="C,C" Offset="0,-2" Size="38,38"  Texture="UnitActions"/>
+>   	</Button>
+>   </Instance>
+> ```
+>
+> 也就是说，我们的操作其实就是把我们自己写的按钮，绑定到官方的StandardActionsStack控件上
+>
+> ```lua
+> local pContext = ContextPtr:LookUpControl("/InGame/UnitPanel/StandardActionsStack")
+> Controls.UnitGrid:ChangeParent(pContext)
+> ```
+>
+> 现在再看这串代码，应该就能明白，我们实际上做了什么。
+
 ###### **2、刷新时机**
+
 现在，我们在Initialize加上新的代码
+
 ```lua
 function Initialize()
     --初始化
@@ -168,7 +178,9 @@ end
 
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
+
 然后，我们写出刷新函数Refresh
+
 ```lua
 -- 刷新函数
 function Refresh()
@@ -200,6 +212,7 @@ function OnUnitSelectionChanged(playerID, unitID, plotX, plotY, plotZ, bSelected
     end
 end
 ```
+
 这些都是通用的部分，即便未来写各种各样的按钮逻辑也不必改变，而下面要写的就是IsButtonHide和IsButtonDisabled的函数逻辑了，也是我们的核心刷新逻辑，通常要根据实际情况灵活修改。
 
 ###### **3、刷新逻辑**
@@ -209,6 +222,7 @@ end
 
 现在我们来决定这个按钮该不该出现吧~
 按照我们的需求，这个单位应当有下面的条件：
+
 1. 存在
 2. 是建造者
 3. 位于领土内
@@ -216,6 +230,7 @@ end
 5. 有剩余移动力
 
 那么我们就可以根据这些条件写出IsButtonHide函数：
+
 ```lua
 --被允许显示的单位表，这样写可以更简单的扩展可用单位种类。
 local AllowUnits = {}
@@ -251,6 +266,7 @@ end
 **向下取整：10 * (1 + 9 * 科文进度) 科技值与文化值**
 
 获得科文进度的函数为：
+
 ```lua
 -- ===========================================================================
 function GetTechProgress(playerID)
@@ -290,6 +306,7 @@ end
 ```
 
 定义下面的文本，用来给按钮显示
+
 ```sql
 INSERT INTO LocalizedText (Language, Tag, Text) VALUES
 ('zh_Hans_CN', 'LOC_SIQI_UI_REMOVE_RESOURSE', '清除该地块的{1_str}资源[NEWLINE]+{2_num}[ICON_Science]科技和[ICON_Culture]文化。');
@@ -321,16 +338,19 @@ end
 ```
 
 ###### **4、按钮能力**
+
 好了，按钮的刷新逻辑就这样简单的做完了，现在来看按下按钮会发生什么事情。很显然，这里是UI环境，我们需要传递信息到gameplay，然后在gameplay环境修改数据。
 
 回到我们的目的：**建造者清除领土内的奢侈品资源，并且获得科技或者文化。**
 那么我们需要在按下按钮后，发现下面的事情：
+
 1. 资源被清除
 2. 玩家获得科技和文化
 3. 单位结束行动
 4. 单位失去一点劳动力
 
 对应需要的数据：
+
 1. 地块坐标
 2. 科文数值
 3. 单位ID
@@ -355,12 +375,14 @@ function OnButtonClicked()
     Controls.UnitGrid:SetHide(true) -- 让按钮重新隐藏
 end
 ```
+
 ###### **5、效果实现**
 
 新建一个文件
 Siqi_Scripts.lua
 
 然后这样写：
+
 ```lua
 function OnSiqiRemoveResourse(playerID, params)
 
@@ -386,10 +408,14 @@ end
 
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
+
 细心的你一定发现了，这里没有写减少劳动力，因为lua无法直接减少劳动力，需要modifier辅助。
 
 新建一个sql文件:
 Siqi_Modifiers.sql
+
+然后写下面的代码，
+这里写10个-1劳动力的Ability，主要是因为Ability重复挂是无效的，因此需要10个，通常足够用了。
 
 ```sql
 INSERT INTO Types (Type, Kind) VALUES
@@ -455,6 +481,7 @@ INSERT INTO DynamicModifiers (ModifierType, EffectType, CollectionType) VALUES
 ```
 
 然后在lua补充减少劳动力的函数
+
 ```lua
 function ReduceUnitBuildCharge(playerID, UnitID)
     local pUnit = UnitManager.GetUnit(playerID, UnitID) -- 获取玩家的单位
@@ -492,6 +519,7 @@ end
 **直接判断玩家的文明类型和领袖类型**
 优点：简单直接
 缺点：兼容性差，只有这个文明/领袖可用
+
 ```lua
 --判断玩家是不是目标文明 返回布尔值
 function IsCivilizationType(playerID, civilizationType)
@@ -513,6 +541,7 @@ end
 **判断玩家的Trait**
 优点：兼容性更好
 缺点：代码更复杂
+
 ```lua
 -- 判断玩家是否拥有目标Trait 返回布尔值
 function PlayerHasTrait(playerID, sTrait)
@@ -530,9 +559,11 @@ function PlayerHasTrait(playerID, sTrait)
 	return false;
 end
 ```
+
 **判断玩家的Property**
 优点：非常自由
 缺点：要写配合的Modifier，麻烦。
+
 ```lua
 -- 判断玩家是否拥有目标Property 返回布尔值
 function Siqi_HasTraitProperty(playerID, sProperty)
@@ -562,12 +593,15 @@ end
 基本原理：REQUIREMENT_PLOT_PROPERTY_MATCHES判断的是单元格的Property值，而我们是可以在lua中设置Property值的，因此这也是我们能在lua控制modifier的开关的方法。这种方法有缺点，但总体而言大幅提高了modder的自由度。
 
 为了方便讲解，我们先设定一个简单的目标：
+
 ```
 城市每点宜居度额外+2科技值。
 ```
+
 先新建一个sql文件：*_Modifiers.sql（这里的 *表示前缀，按需填写就行）
 
 然后这样写：
+
 ```sql
 -- 这里是通用能力，当然也可以改成TraitModifiers然后绑定领袖或文明，不过ModifierType也需要对应修改。
 INSERT INTO  GameModifiers (ModifierId) VALUES
@@ -653,6 +687,143 @@ INSERT INTO  RequirementArguments (RequirementId, Name, Value) VALUES
 REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_8和REQ_SIQI_MOD2_CITY_YIELD_SCIENCE_2启用，将对应的PropertyName的值设为1，其他的设为0，就可以轻松做到了。我们可以自由组合出1到127的科技值产出。
 
 城市宜居度是会上下变动的，因此我们需要反复刷新，控制modifier的启用与否。
+为了处理这些数据，我们需要几个辅助函数：
+
+```lua
+SiqiBinaryList = {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536} -- 全局二进制位列表
+
+-- 输入一个数和位数n，输出n位的二进制数组
+function Siqi_10to2(num, n)
+    local result = {}
+    for i = 1, n do
+        local bitValue = (num % 2)
+        table.insert(result, bitValue)
+        num = math.floor(num / 2)
+    end
+    return result
+end
+
+-- 输入一个二进制数组，输出对应的数
+function Siqi_2to10(binaryArray)
+    local result = 0
+    for i, bitValue in ipairs(binaryArray) do
+        result = result + bitValue * SiqiBinaryList[i]
+    end
+    return result
+end
+
+-- 获取单元格的property值
+function Siqi_GetPlotProperty(plotIndex, sProperty)
+    local pPlot = Map.GetPlotByIndex(plotIndex)
+    local property = {}
+    for i = 1, #SiqiBinaryList do
+        table.insert(property, pPlot:GetProperty(sProperty .. SiqiBinaryList[i]) or 0)
+    end
+    return property
+end
+
+-- 设置单元格的property值 UI端无法使用
+function Siqi_SetPlotProperty(plotIndex, newproperty, sProperty)
+    local pPlot = Map.GetPlotByIndex(plotIndex)
+    local oldproperty = Siqi_GetPlotProperty(plotIndex, sProperty) -- 获取当前单元格的属性值
+    for i = 1, #newproperty do
+        if newproperty[i] and newproperty[i] ~= oldproperty[i] then
+            pPlot:SetProperty(sProperty .. SiqiBinaryList[i], newproperty[i])
+        end
+    end
+end
+```
+
+现在我们来讲讲操作逻辑：
+
+第一步：获取宜居度
+第二步：计算城市应该获得的科技值
+第三步：获取原有给的科技值
+第四步：计算新科技值的二进制
+第五步：设置科技值
+
+很简单吧~我们一步步来
+
+**第一步**：获取宜居度
+这是来自马良大佬的模块化相邻加成的函数，可以在GP获得城市的宜居度
+
+```lua
+-- 来自马良的计算城市宜居度，爱来自马良
+function Ruivo_FROM_CITY_SURPLUS_AMENITIES(City)
+    local CityGrowth = City:GetGrowth();
+    local TotalAmenities = CityGrowth:GetAmenities();
+    --print("本城总宜居度：", TotalAmenities);
+    local Population = City:GetPopulation();
+    local CITY_POP_PER_AMENITY = GameInfo.GlobalParameters['CITY_POP_PER_AMENITY'].Value
+    --print("消耗1个宜居度的人口数：", CITY_POP_PER_AMENITY)
+    local AmenitiesNeeded_FromPopulation = math.ceil(Population / CITY_POP_PER_AMENITY);--向上取整，1个人口也消耗1宜居，2个也消耗1宜居
+    --print("人口消耗宜居度（向上取整）：", AmenitiesNeeded_FromPopulation);
+    local CITY_AMENITIES_FOR_FREE = GameInfo.GlobalParameters['CITY_AMENITIES_FOR_FREE'].Value
+    local Count = TotalAmenities + CITY_AMENITIES_FOR_FREE - AmenitiesNeeded_FromPopulation;
+    --print("溢出宜居度：", Count);
+    --print("-==============================")
+    return Count;
+end
+```
+
+计算城市应该获得的科技值
+这一步十分简单，×2就行了，不过在实际设计中，往往还是需要进一步处理的，我们在这里写一个Refresh函数，意指刷新。
+
+```lua
+function Refresh(playerID,CityID)
+    local pCity = CityManager.GetCity(playerId, CityID);  --获取城市
+    if pCity == nil then return; end   --如果城市不存在，则不执行
+    local Amenities = Ruivo_FROM_CITY_SURPLUS_AMENITIES(pCity);  --获取城市的宜居度
+    local Amount_10 = 2*Amenities
+end
+```
+
+**第三步**：获取原有给的科技值
+
+我们是通过单元格的Property值状态来控制科技的产量的，例如说，我已经让城市有10科技值了，那么现在我对1到64的7个Property获取其值，应该分别为：
+
+0，1，0，1，0，0，0
+
+也就是0* 1 + 1* 2 + 0* 4 + 1* 8 + 0* 16 + 0* 32 + 0 *64 = 10
+
+那我们就很容易的能直接通过地块状态来获取数值了。
+
+```lua
+function Refresh(playerID,CityID)
+    ... 省略 续上文
+    local pPlot = Map.GetPlot(pCity:GetX(), pCity:GetY());
+    local OldAmount_2 = Siqi_GetPlotProperty(pPlot:GetIndex(), "REQ_SIQI_MOD2_PROPERTY_")  --获取原有的科技值
+    local OldAmount_10 = Siqi_2to10(OldAmount_2)  --转换为十进制
+end
+```
+
+**第四步**：计算新科技值的二进制
+
+假如我们城市的宜居度提升了，变成了7，需要14科技。那么我们需要补4的科技差值，不过我们最终都是直接设置单元格的Property状态，所有直接获得新科技值的二进制即可。
+
+14 = 0* 1 + 1* 2 + 1* 4 + 1* 8 + 0* 16 + 0* 32 + 0 *64 
+
+0，1，1，1，0，0，0
+
+```lua
+
+local NewAmount_2 = Siqi_10to2(Amount_10 , 7)
+
+```
+
+**第五步**：设置科技值
+
+将计算好的二进制数按顺序设置即可，事实上，旧数据在这里根本没用上，而是在Siqi_SetPlotProperty()里面用了，你看，新值和旧值的差别只有某个Property的数值不同，那么只需要改这个就可以了，因此需要旧数据进行对比。
+
+```lua
+Siqi_SetPlotProperty(pPlot:GetIndex(), NewAmount_2 , 'REQ_SIQI_MOD2_PROPERTY_')
+```
+
+
+
+很简单吧，刷新逻辑，现在应该开始思考什么时候刷新了、
+
+
 
 #### 1.3 UI界面设计
 
@@ -674,6 +845,7 @@ xml部分记录了这个面板上所包涵的所有内容。首先我们来分�
 5.面板的主体部分，包括：（1）一个标签页选择按钮（第一页），位于标题栏正下方；（2）该标签页对应的内容，包括：1>一个容器，使用深蓝色背景纹理，且四周还有圆角效果；2>中间显示了一个文本，内容是“请输入内容”。
 
 以上内容我们都要在xml里面写出来，具体代码如下：
+
 ```xml
     <Container ID="MainContainer" Anchor="C,C" Size="900,600" Offset="0,0">
         <Image ID="ModalBG" Size="parent,parent" Texture="Religion_BG" StretchMode="Tile" ConsumeMouse="1"/>  
@@ -696,48 +868,62 @@ xml部分记录了这个面板上所包涵的所有内容。首先我们来分�
         </Tab>
     </Container>  
 ```
+
 下面我们来逐行分析一下：
 第一行：
+
 ```xml
     <Container ID="MainContainer" Anchor="C,C" Size="900,600" Offset="0,0">
 ```
+
 这里定义了一个主容器，ID为MainContainer；锚点是Anchor="C,C"，表示这个容器生成在游戏界面的正中间（C,C表示上下居中，左右居中，类似的L表示左边，R表示右边，T表示顶部，B表示底部，比如Anchor="L,T"就表示靠左置顶）；大小为Size="900,600"，表示长为900像素，宽为600像素；偏移量为0：Offset="0,0"。
 
 第二行：
+
 ```xml
         <Image ID="ModalBG" Size="parent,parent" Texture="Religion_BG" StretchMode="Tile" ConsumeMouse="1"/>  
 ```
+
 这里是定义背景图片的，图片的ID为ModalBG；Size="parent,parent"：尺寸大小与父控件相同，即长为900像素，宽为600像素；Texture="Religion_BG"：使用宗教界面的背景纹理图片（这是官方定义好的图片，这里直接拿来用了。如果想用自己的图片，需要在这里填上自己图片的名称（一定要以dds为后缀，后面我们设顶部按钮的图片还会重点介绍）；StretchMode="Tile"：图片以平铺方式填充；ConsumeMouse="1"：阻止鼠标点击事件穿透到下层。
 
 第三~五行：
+
 ```xml
         <Grid Size="parent,40" Texture="Controls_SubHeader2" ConsumeMouse="1" SliceCorner="20,2" SliceTextureSize="40,40">
             <Label ID="ScreenTitle" String="LOC_KIANA_WINDOW_TITLE" Anchor="C,C" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader" />
         </Grid> 
 ```
+
 这里定义了标题栏：Size="parent,40"：标题栏的大小为：长与父控件相同，即900像素，宽为40像素；Texture="Controls_SubHeader2"：使用游戏内名为Controls_SubHeader2的纹理作为背景；ConsumeMouse="1"：阻止鼠标点击事件穿透到下层；SliceCorner="20,2"和SliceTextureSize="40,40"用于控制纹理的九宫格拉伸：SliceTextureSize="40,40"：定义了源纹理中被视为“角”的区域大小（40x40像素）；SliceCorner="20,2"：定义了在目标（这个Grid）上，每个角应该占用多大区域。这里水平方向角宽20像素，垂直方向角高2像素。简单来说，这确保了背景纹理在拉伸时，角落部分（如圆角）能保持原样，而中间部分则平滑拉伸，以适应任何宽度。
 
 标题栏里面包涵一个文本（即标题：教程面板），ID为ID="ScreenTitle"，String="LOC_KIANA_WINDOW_TITLE"：标题的内容：LOC_KIANA_WINDOW_TITLE翻译过来为“教程面板“，这个需要在text文件里面写好对应的中文翻译；Anchor="C,C"：锚点位于正中间；Style="FontFlair22"：使用官方预定义的文本样式，FontStyle="glow"：在字体基础样式之上，再添加一个发光的效果；ColorSet="ShellHeader"：使用一个名为 ShellHeader 的预定义颜色套装。这确保了整个游戏的标题文本颜色风格统一（通常是亮色，如白色，以在深色背景上突出）。
 
 第六行：
+
 ```xml
         <Grid Offset="-8,-8" Size="parent+16,parent+16" Style="ScreenFrame"/>
 ```
+
 这里定义了一个主容器的的外边框装饰：Offset="-8,-8"：偏移量为-8，-8表示相对于其父容器（MainContainer）上下左右各超出8个像素，所以总和就是16，即Size="parent+16,parent+16"；Style="ScreenFrame"：定义了这个装饰的纹理效果。
 
 第七行：
+
 ```xml
         <Button ID="CloseButton" Anchor="R,T" Size="44,44" Texture="Controls_CloseLarge"/>
 ```
+
 这里定义了一个关闭按钮：ID为CloseButton；Anchor="R,T"：锚点在父容器右边置顶；Size="44,44"：大小为44*44像素，Texture="Controls_CloseLarge"：使用大号关闭按钮的图标。（小号关闭按钮的图标为：Style="CloseButtonSmall"，这里不需要设定尺寸）
 
 第八行：
+
 ```xml
         <Tab ID="TabControl" Anchor="L,T" Size="parent-40, 520" Offset="0,30">
 ```
+
 这里定义了标签页容器：包括标签页选择按钮及其对应的区域，容器的ID为TabControl，锚点在左边置顶，尺寸大小为：长为父容器-40像素，宽为520像素（也可以写parent-80），偏移量为左右偏移量为0，上下偏移量为30.
 
 第九~十三行：
+
 ```xml
             <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
                 <GridButton ID="SelectTab_FirstPage" Style="TabButton" Size="100,35">
@@ -745,44 +931,53 @@ xml部分记录了这个面板上所包涵的所有内容。首先我们来分�
                 </GridButton>
             </Stack>
 ```
+
 这里定义了标签页选择按钮：首先它在一个容器里，这个容器的堆叠方式为：StackGrowth="Right"：将里面的元素从左到右的顺序依次放置（前面有讲过），锚点为居中顶部，偏移量为向下偏移10像素。该容器里面包括一个按钮，按钮ID为SelectTab_FirstPage：
 
->**注意脚下**：ID="SelectTab_FirstPage"
+> **注意脚下**：ID="SelectTab_FirstPage"
 >
->可能你已经注意到了，这个ID与其他的略有不同。前面是SelectTab，然后用下划线连接着FirstPage，细心的你一定注意到了，我们接下来Container里面包含的容器Grid ID="FirstPage"正好与这个ID下划线后面的内容相同：
->   ```xml        
->           <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
->               <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
->                   <Label ID="NoteLabel1" Offset="20,60" Anchor="L,T" WrapWidth="850" Style="FontFlair20" FontStyle="shadow" ColorSet="ShellHeader" String="LOC_KIANA_FIRST_PAGE"/>
->               </Grid>
->           </Container>
->   ```
->注意这里标签页选择按钮的ID是固定写法：即前面是'SelectTab'加上下划线'_'再加上该标签页对应的容器的ID。容器的ID前面的'SelectTab'不能写成其他的，除此之外下划线也一定要有，不然我们点击该标签页选择按钮就无法跳转到其对应的界面。
+> 可能你已经注意到了，这个ID与其他的略有不同。前面是SelectTab，然后用下划线连接着FirstPage，细心的你一定注意到了，我们接下来Container里面包含的容器Grid ID="FirstPage"正好与这个ID下划线后面的内容相同：
+>
+> ```xml
+>         <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
+>             <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
+>                 <Label ID="NoteLabel1" Offset="20,60" Anchor="L,T" WrapWidth="850" Style="FontFlair20" FontStyle="shadow" ColorSet="ShellHeader" String="LOC_KIANA_FIRST_PAGE"/>
+>             </Grid>
+>         </Container>
+> ```
+>
+> 注意这里标签页选择按钮的ID是固定写法：即前面是'SelectTab'加上下划线'_'再加上该标签页对应的容器的ID。容器的ID前面的'SelectTab'不能写成其他的，除此之外下划线也一定要有，不然我们点击该标签页选择按钮就无法跳转到其对应的界面。
 
 Style="TabButton": 应用一个名为"TabButton"的预定义样式，尺寸为：长是100像素，宽是35像素，其中按钮内部包含一个文本，Style="FontFlair14"：字体样式为使用14号的“Flair”字体样式，内容为String="LOC_KIANA_FIRST_PAGE_TAB"翻译过来是”第一页“，Anchor="C,C"：字体显示在按钮正中间；FontStyle="stroke"：为文字添加描边效果； ColorSet="TopBarValueCS"：使用一个名为 "TopBarValueCS" 的预定义颜色方案。
 
 第十四~十八行：
-```xml        
+
+```xml
            <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
                <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
                    <Label ID="NoteLabel1" Offset="20,60" Anchor="L,T" WrapWidth="850" Style="FontFlair20" FontStyle="shadow" ColorSet="ShellHeader" String="LOC_KIANA_FIRST_PAGE"/>
                </Grid>
            </Container>
 ```
+
 这里定义了一个所有标签页内容的总父容器，你可以把它想象成一个画板，不同的标签页（FirstPage, SecondPage等）就像是画板上的透明图层。一次只显示一个“图层”，其他的则被隐藏。Grid ID="FirstPage":这是第一个标签页对应的容器，Size="parent,parent-20"：大小为：长为父容器像素，宽比父容器小20像素；Offset="20,50"：向右偏移20像素，向下偏移50像素；Texture="Religion_OverviewFrame"：使用一个名为 Religion_OverviewFrame 的纹理作为这个内容面板的背景（图中显示为深蓝色）；SliceCorner="15,15"： 使用九宫格拉伸，确保这个背景板的圆角（15x15像素）在任何尺寸下都能正确显示，不会变形。
 
->**笔记笔记**：
->```xml   
+> **笔记笔记**：
+>
+> ```xml
 >               <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
->```
+> ```
+>
 > Texture="Religion_OverviewFrame" SliceCorner="15,15",这个代码是设定容器的边框的，如果不写这两个代码，那么该界面（FirstPage）的边框将不会显示，这里写上是为了更好的看到该容器的大小，以便以后往里面添加内容时好调整间距。此外，SliceCorner="15,>15" 是固定写法，这个背景板的圆角：15x15像素 写成其他任何像素值该效果都不会生效。
 
 该容器（FirstPage）内部包涵一个文本：ID为NoteLabel1；WrapWidth="850"：换行宽度：即文本显示的一行字的长度超过1340像素才会换行；Style="FontFlair20"：字体样式为使用使用官方预定义的文本样式；FontStyle="shadow"：在基础样式之上添加额外的阴影效果；ColorSet="ShellHeader"：使用一个预定义的颜色配置集；String="LOC_KIANA_FIRST_PAGE"：该文本内容是：“请输入内容”。
 
 ###### **2、xml部分：启动按钮**
+
 现在我们已经在xml文件里面写上了该面板所包涵的所有内容。接下来我们要写打开这个面板的启动按钮（注意我们左上角自定义的按钮）。
-这里我们的节点要写成<Instance>: 这不是一个直接显示在界面上的元素，而是一个模板（或蓝图）。它可以被游戏的其他部分或Lua脚本多次“实例化”和调用，从而避免重复编写相同的UI代码。
+这里我们的节点要写成`<Instance>`: 这不是一个直接显示在界面上的元素，而是一个模板（或蓝图）。它可以被游戏的其他部分或Lua脚本多次“实例化”和调用，从而避免重复编写相同的UI代码。
 我们在xml里面写上这个启动按钮，具体代码如下：
+
 ```xml
     <Instance Name="LaunchKianaItem">
         <Button ID="LaunchKianaItemButton" Anchor="L,C" Size="49,49" Texture="LaunchBar_Hook_GreatWorksButton" Style="ButtonNormalText" TextureOffset="0,2" StateOffsetIncrement="0,49" ToolTip="LOC_ETStudio_ENTRY_BUTTON_TOOLTIP">
@@ -791,17 +986,22 @@ Style="TabButton": 应用一个名为"TabButton"的预定义样式，尺寸为�
         </Button>
     </Instance>
 ```
+
 下面我们来逐行分析一下：
 第一行：
+
 ```xml
     <Instance Name="LaunchKianaItem">
 ```
+
 Name="LaunchBarItem3": 这个模板的唯一名称。其他代码可以通过这个名称来引用并使用它创建实际的按钮。（在lua里面我们会重点介绍它的用法）
 
 第二行：
+
 ```xml
     <Button ID="LaunchKianaItemButton" Anchor="L,C" Size="49,49" Texture="LaunchBar_Hook_GreatWorksButton" Style="ButtonNormalText" TextureOffset="0,2" StateOffsetIncrement="0,49" ToolTip="LOC_KIANA_ENTRY_BUTTON_TOOLTIP">
 ```
+
 ID="LaunchItem3Button": 按钮实例的标识符。在由这个模板创建出的每个实际按钮中，这个ID可能都会存在，便于单独控制；
 Texture="LaunchBar_Hook_GreatWorksButton"：这是按钮的背景纹理；
 Style="ButtonNormalText"：应用一个基础的按钮样式；
@@ -810,33 +1010,41 @@ StateOffsetIncrement="0,49"：这是一个非常重要的属性，用于处理�
 ToolTip="LOC_KIANA_ENTRY_BUTTON_TOOLTIP"：按钮的鼠标悬停提示：定义鼠标悬停在按钮上时显示的工具提示文本。
 
 第三行：
+
 ```xml
             <Image ID="LaunchItemIcon" Texture="KianaEntryIcon.dds" Size="35,35" Anchor="C,C" Offset="0,-1" Hidden="0"/>
 ```
+
 这里定义了按钮的图片，ID为LaunchItemIcon，这里采用自定义图片，名称是KianaEntryIcon.dds，大小为35*35像素，锚点为居中，偏移量为向下偏移1个像素，Hidden="0"：默认显示（如果Hidden="1"就是默认隐藏）。
 
->**笔记笔记**：
->  关于图片的加载，有两种方法：第一种是直接在modinfo里面的<ImportFiles>节点填上图片的路径：  
->```modinfo 
+> **笔记笔记**：
+> 关于图片的加载，有两种方法：第一种是直接在modinfo里面的`<ImportFiles>`节点填上图片的路径：
+>
+> ```modinfo
 >      <ImportFiles id="KianaInclude">
 >          <File>KianaEntryIcon.dds</File>
 >      </ImportFiles>
->``` 
->第二种方法是创建一个xlp文件，最后生成blp文件，这里为了方便我们采用第一种方法。（采用第二种方法不要忘记创建一个*.artdef文件，不然游戏读不出来图片）
+> ```
+>
+> 第二种方法是创建一个xlp文件，最后生成blp文件，这里为了方便我们采用第一种方法。（采用第二种方法不要忘记创建一个*.artdef文件，不然游戏读不出来图片）
 
 第四行：
+
 ```xml
             <Label ID="IconAlter" String="[ICON_CapitalLarge]" Anchor="C,C" Offset="0,0" Hidden="1"/>  
 ```
+
 这是一个备用显示方案。如果自定义图标因为某种原因无法加载，可能会回退到这里显示这个备用图标。String="[ICON_CapitalLarge]": 这是官方的图标代码。Hidden="1": 1 表示默认隐藏。因为这个是备用方案，所以正常情况下不显示。
 
 除此之外我们最好写一个启动栏标记点模板，这个模板创建了一个小圆点，这类小元素在游戏UI中常常用于指示状态、进度或当前位置，比如表示某个功能有新通知，或者作为多页面启动栏的页码指示器。
 我们在xml里面写上相关代码，具体代码如下：
+
 ```xml
     <Instance Name="LaunchKianaPinInstance">
     <Image ID="KianaPin" Anchor="L,C" Offset="0,-2" Size="7,7" Texture="LaunchBar_TrackPip" Color="255,255,255,200"/>
     </Instance>
 ```
+
 ID="KianaPin"： 该图像元素的标识符。
 Anchor="L,C"： 锚定在父容器的左侧中间位置。
 Offset="0,-2"： 视觉微调。在锚定位置的基础上，再向上偏移2像素。
@@ -849,30 +1057,36 @@ Color="255,255,255,200"：颜色覆盖属性，这意味着它是半透明的，
 ###### **3、lua部分**
 
 关于lua部分，首先我们先在文件开头写上以下几行代码：
+
 ```lua
 include("InstanceManager");  -- 引入游戏引擎的实例管理系统
 
 local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "LaunchKianaItemButton")
 local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
 ```
+
 我们一行一行来看，第一行：
+
 ```lua
 include("InstanceManager");  
 ```
+
 这行代码引入了游戏引擎提供的一个名为InstanceManager.lua的脚本文件，这个文件定义了一个叫做InstanceManager的类（Class）。这个类是文明6UI系统的基石，它提供了一种强大且高效的方法来动态创建、重复使用和销毁由XML模板定义的UI控件。可以说，我们以后写UI界面，这个是必须要有的，而且在开头就直接写上。
 
 第二行和第三行：
+
 ```lua
 local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "LaunchKianaItemButton")
 local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
 ```
-这两行就是创建一个新的实例管理器（InstanceManager）对象，专门用于管理我们在xml里面写好的UI实例。
-`InstanceManager:new()`: 调用 InstanceManager 类的构造函数，创建一个新的管理器，后面跟了两个参数，分别是`LaunchKianaItem`和`LaunchKianaItemButton`，其中第一个参数`LaunchKianaItem`是我们在xml里面创建的面板启动按钮实例的模板名。它告诉管理器：当你需要创建新实例时，请去查找我们在XML文件中用`Instance Name="LaunchKianaItem"`定义的那个模板。第二个参数`LaunchKianaItemButton`是根控件的ID，在我们的代码中它是一个按钮的ID：<Button ID="LaunchKianaItemButton"……。它告诉管理器：“在那个模板里，真正的根元素是一个ID为LaunchKianaItemButton的控件（Button），请把它作为这个实例的代表返回给我”。
-后面`local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")`同理，就是把启动栏标记点模板也写进去。
 
->**笔记笔记**
->所以，一般我们写xml的时候，都在<Instance></Instance>里面再套一层容器，比如这里就是<Button></Button>，有些代码里面会是<Container></Container>,这样我们在lua里面调用这个实例的时候，就会把<Instance>里面定义的所有内容全都包含进去。
->其实这个函数InstanceManager:new()不止上面提到的两个参数，它还有第三个参数，只是这里我们暂时用不到，后面我们在写记录文本以及新建按钮的时候会用到，到时候会再跟大家详细解释这个函数。
+这两行就是创建一个新的实例管理器（InstanceManager）对象，专门用于管理我们在xml里面写好的UI实例。
+`InstanceManager:new()`: 调用 InstanceManager 类的构造函数，创建一个新的管理器，后面跟了两个参数，分别是 `LaunchKianaItem`和 `LaunchKianaItemButton`，其中第一个参数 `LaunchKianaItem`是我们在xml里面创建的面板启动按钮实例的模板名。它告诉管理器：当你需要创建新实例时，请去查找我们在XML文件中用 `Instance Name="LaunchKianaItem"`定义的那个模板。第二个参数 `LaunchKianaItemButton`是根控件的ID，在我们的代码中它是一个按钮的ID：<Button ID="LaunchKianaItemButton"……。它告诉管理器：“在那个模板里，真正的根元素是一个ID为LaunchKianaItemButton的控件（Button），请把它作为这个实例的代表返回给我”。
+后面 `local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")`同理，就是把启动栏标记点模板也写进去。
+
+> **笔记笔记**
+> 所以，一般我们写xml的时候，都在`<Instance></Instance>`里面再套一层容器，比如这里就是`<Button></Button>`，有些代码里面会是`<Container></Container>`,这样我们在lua里面调用这个实例的时候，就会把`<Instance>`里面定义的所有内容全都包含进去。
+> 其实这个函数InstanceManager:new()不止上面提到的两个参数，它还有第三个参数，只是这里我们暂时用不到，后面我们在写记录文本以及新建按钮的时候会用到，到时候会再跟大家详细解释这个函数。
 
 之后，我们写上按钮的初始化代码：
 
@@ -905,12 +1119,15 @@ function Initialize()
 end
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
+
 看到这里，或许你会有疑问，为什么这里要定义两个全局变量呢？
+
 ```lua
 local EntryButtonInstance = nil
 local LaunchBarPinInstance = nil
 ```
-其实这是一个引用变量。它的目的是为了后续存储从`m_LaunchItemInstanceManager`函数里面生成出来的第一个按钮实例，在下面的`SetupKianaLaunchBarButton()`函数中，你会看到这行代码：`EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)`，这时，`EntryButtonInstance`就不再是 nil，而是一个包含真实UI按钮的对象，程序可以通过它来操作这个具体的按钮（如注册点击事件，判断按钮可见性，等等）。
+
+其实这是一个引用变量。它的目的是为了后续存储从 `m_LaunchItemInstanceManager`函数里面生成出来的第一个按钮实例，在下面的 `SetupKianaLaunchBarButton()`函数中，你会看到这行代码：`EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)`，这时，`EntryButtonInstance`就不再是 nil，而是一个包含真实UI按钮的对象，程序可以通过它来操作这个具体的按钮（如注册点击事件，判断按钮可见性，等等）。
 
 举个例子，比如说我们现在给这个按钮增加一个可见性检查，只有当玩家选择阿基坦的埃莉诺（法国）这个领袖的时候，按钮才可见，代码如下：
 
@@ -954,6 +1171,7 @@ function SetupKianaLaunchBarButton()
 end
 --后续代码……
 ```
+
 在KianaButtonIsHide()这个函数中，我们直接写上：
 `EntryButtonInstance.LaunchKianaItemButton:SetHide(true);`
 
@@ -961,6 +1179,7 @@ end
 来判断按钮是否可见。
 
 到这里还没结束，虽然我们定义了打开界面的代码逻辑，但是并没有写关闭界面的代码逻辑，这个时候进入游戏，你会发现只要打开这个界面就关不掉了。所以我们还要继续添加关闭界面的代码逻辑。此时你应该会想到，我们在xml里面定义了一个关闭按钮：ID为CloseButton，位于右上角。接下来我们为这个按钮写上关闭界面的功能，代码如下：
+
 ```lua
 function HideKIANAWindow() --- 关闭界面
     if not ContextPtr:IsHidden() then   -- 检查窗口是否已显示
@@ -969,11 +1188,15 @@ function HideKIANAWindow() --- 关闭界面
     end
 end
 ```
+
 除此之外我们还要为这个关闭按钮注册回调函数，在Initialize()函数里添加回调函数：
+
 ```lua
     Controls.CloseButton:RegisterCallback(Mouse.eLClick, HideKIANAWindow)  -- 关闭按钮
 ```
+
 这时你的Initialize()函数看起来会是这样：
+
 ```lua
 function Initialize()
     SetupKianaLaunchBarButton()
@@ -982,23 +1205,23 @@ function Initialize()
 end
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
+
 这里可能大家会有疑问，为什么在前面的SetupKianaLaunchBarButton()函数中已经调用过按钮可见性的函数，这里为什么还要再调用一次呢？其实，这种看似“重复”的操作通常是有意为之的，是一种防御性编程和确保兼容性的重要技巧，主要原因有以下几点：
 
->**笔记笔记**
->1. 初始化时序的不确定性
->这是最主要的原因。游戏UI的加载和初始化是一个多阶段的过程：
->第一阶段：你的Lua文件被加载，Initialize() 函数被定义，但尚未执行。
->第二阶段：Events.LoadGameViewStateDone.Add(Initialize) 确保在游戏主界面完全加载后，才执行你的 Initialize() 函数。
->第三阶段：在 Initialize() 内部，你调用 SetupKianaLaunchBarButton()。
->问题在于：即使在 SetupKianaLaunchBarButton() 中成功创建了按钮并设置了初始可见性，从这时到游戏完全准备就绪之间，游戏状态可能仍会发生微小变化。例如，玩家的最终配置、其他Mod的干扰或游戏内部的后续初始化步骤都可能影响按钮应该显示的状态。
->在 Initialize() 的末尾再次调用 KianaButtonIsHide()，相当于在所有初始化代码执行完毕后，进行一次最终的状态同步，确保按钮的可见性是基于100%确定的游戏状态。
+> **笔记笔记**
 >
->2. 模块化与函数职责
->SetupKianaLaunchBarButton() 的主要职责是“创建和设置按钮”。调用 KianaButtonIsHide() 是其设置过程的一部分，确保按钮创建后有一个合理的初始状态。
->Initialize() 的主要职责是“确保整个Mod处于正确的初始状态”。在它看来，按钮的可见性是这种状态的一部分。因此，它需要亲自验证并强制执行一次，无论之前的函数做了什么。
->
->3. 代码可读性与维护性
->从代码维护的角度看，在 Initialize() 中明确地调用 KianaButtonIsHide()，清晰地传达了我们的设计意图：“在初始化结束时，按钮的可见性必须根据当前条件重新计算一次”。这使得后续的维护者能够更轻松地理解整个初始化流程的最终目标。
+> 1. 初始化时序的不确定性
+>    这是最主要的原因。游戏UI的加载和初始化是一个多阶段的过程：
+>    第一阶段：你的Lua文件被加载，Initialize() 函数被定义，但尚未执行。
+>    第二阶段：Events.LoadGameViewStateDone.Add(Initialize) 确保在游戏主界面完全加载后，才执行你的 Initialize() 函数。
+>    第三阶段：在 Initialize() 内部，你调用 SetupKianaLaunchBarButton()。
+>    问题在于：即使在 SetupKianaLaunchBarButton() 中成功创建了按钮并设置了初始可见性，从这时到游戏完全准备就绪之间，游戏状态可能仍会发生微小变化。例如，玩家的最终配置、其他Mod的干扰或游戏内部的后续初始化步骤都可能影响按钮应该显示的状态。
+>    在 Initialize() 的末尾再次调用 KianaButtonIsHide()，相当于在所有初始化代码执行完毕后，进行一次最终的状态同步，确保按钮的可见性是基于100%确定的游戏状态。
+> 2. 模块化与函数职责
+>    SetupKianaLaunchBarButton() 的主要职责是“创建和设置按钮”。调用 KianaButtonIsHide() 是其设置过程的一部分，确保按钮创建后有一个合理的初始状态。
+>    Initialize() 的主要职责是“确保整个Mod处于正确的初始状态”。在它看来，按钮的可见性是这种状态的一部分。因此，它需要亲自验证并强制执行一次，无论之前的函数做了什么。
+> 3. 代码可读性与维护性
+>    从代码维护的角度看，在 Initialize() 中明确地调用 KianaButtonIsHide()，清晰地传达了我们的设计意图：“在初始化结束时，按钮的可见性必须根据当前条件重新计算一次”。这使得后续的维护者能够更轻松地理解整个初始化流程的最终目标。
 
 到这一步，我们的lua部分就差不多写完了。最后再添加一些管理UI界面生命周期和交互的函数，可以确保Mod的稳定性、与游戏本身的良好集成以及高效的内存使用。具体如下：
 
@@ -1051,19 +1274,22 @@ function Initialize()
 end
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
+
 在初始化函数中，我们设置了这三个回调函数：
+
 ```lua
 ContextPtr:SetInputHandler(KianaInputHandler)  -- 设置全局输入监听
 ContextPtr:SetInitHandler(KianaInitHandler) -- 设置界面初始化回调
 ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
 ```
-首先，`SetInputHandler(KianaInputHandler)`：这是一个输入处理函数 ，它会告诉游戏引擎，当这个UI界面是当前焦点时，所有的键盘和鼠标输入事件都要先交给`KianaInputHandler`函数处理。这让你可以捕获按键（如ESC键）。这个函数确保了当你的Mod窗口打开时，按下ESC键会关闭你的窗口，并且这个ESC键事件不会继续传递去关闭游戏的其他界面（比如意外退出了游戏主菜单），提供了用户友好的游戏体验。
 
-其次，`SetInitHandler(KianaInitHandler)`：这是一个延迟初始化函数。游戏引擎会在所有UI元素加载完毕、但尚未显示之前调用它。那么为什么我们要在这里调用？ 虽然我们在Initialize()函数里已经调用了`SetupKianaLaunchBarButton()`，但有些UI操作确保在完全初始化完成后执行会更安全。这里再次确保启动栏按钮被正确创建和设置。
+首先，`SetInputHandler(KianaInputHandler)`：这是一个输入处理函数 ，它会告诉游戏引擎，当这个UI界面是当前焦点时，所有的键盘和鼠标输入事件都要先交给 `KianaInputHandler`函数处理。这让你可以捕获按键（如ESC键）。这个函数确保了当你的Mod窗口打开时，按下ESC键会关闭你的窗口，并且这个ESC键事件不会继续传递去关闭游戏的其他界面（比如意外退出了游戏主菜单），提供了用户友好的游戏体验。
 
-最后，`SetShutdown(KianaShutdownHandler)`：这是UI的析构函数。当Mod界面被关闭或游戏结束时，游戏引擎会自动调用它。在游戏运行期间，通过`InstanceManager:GetInstance()`创建的UI实例会占用内存。如果不手动释放，即使关闭了Mod，这些内存也不会被回收，导致内存泄漏。这个很重要：如果不加上这个函数，那么有可能会导致即使把mod卸了也会触发相应的功能！
+其次，`SetInitHandler(KianaInitHandler)`：这是一个延迟初始化函数。游戏引擎会在所有UI元素加载完毕、但尚未显示之前调用它。那么为什么我们要在这里调用？ 虽然我们在Initialize()函数里已经调用了 `SetupKianaLaunchBarButton()`，但有些UI操作确保在完全初始化完成后执行会更安全。这里再次确保启动栏按钮被正确创建和设置。
 
-最后是`LuaEvents`，这些是文明6游戏引擎提供的事件系统的一部分，它们代表了游戏中发生的各种特定或随机事件。当游戏中发生这些事件时，调用我们的`HideKIANAWindow`函数，隐藏界面。这是一种非常重要的设计模式，它确保了我们的Mod界面能够与游戏原生界面正确交互和和谐共存，避免UI重叠或冲突。
+最后，`SetShutdown(KianaShutdownHandler)`：这是UI的析构函数。当Mod界面被关闭或游戏结束时，游戏引擎会自动调用它。在游戏运行期间，通过 `InstanceManager:GetInstance()`创建的UI实例会占用内存。如果不手动释放，即使关闭了Mod，这些内存也不会被回收，导致内存泄漏。这个很重要：如果不加上这个函数，那么有可能会导致即使把mod卸了也会触发相应的功能！
+
+最后是 `LuaEvents`，这些是文明6游戏引擎提供的事件系统的一部分，它们代表了游戏中发生的各种特定或随机事件。当游戏中发生这些事件时，调用我们的 `HideKIANAWindow`函数，隐藏界面。这是一种非常重要的设计模式，它确保了我们的Mod界面能够与游戏原生界面正确交互和和谐共存，避免UI重叠或冲突。
 
 至此，我们的所有工作就都做完了。最后在Text.xml里面写上翻译文本，这个mod就做完了。但是我们这个UI界面并没有什么实际的功能，下一节我们会给这个UI界面设定一个简单的功能：记录玩家的实时信息。
 
@@ -1077,41 +1303,50 @@ ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
 
 首先，我们先写xml的部分。在上一节中，我们设计了一个简单的面板，这一节我们在此基础上，再添加一些代码。通过观察上面的游戏截图不难看出，我们的记录面板在另一个标签页上，而且在该标签页内有一个滚动面板，在滚动面板的右边还有一个滚动条。我们先写这部分的代码。
 在原来的标签页内容的总父容器里面：
-```xml        
+
+```xml
         <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
             <Grid ID="FirstPage" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >
                 <Label ID="NoteLabel1" Offset="20,60" Anchor="L,T" WrapWidth="850" Style="FontFlair20" FontStyle="shadow" ColorSet="ShellHeader" String="LOC_KIANA_FIRST_PAGE"/>
             </Grid>
         </Container>
 ```
+
 再次添加一个 Grid 容器，这个容器里面包括一个滚动面板和一个滚动条，具体代码如下：
-```xml      
+
+```xml
             <Grid ID="RemarkAllUnitsText" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >  
                 <ScrollPanel ID="RemarkTextScrollPanel" Anchor="L,T" Size="parent,parent" Offset="0,0" AutoSizePadding="2,0" Style="ScrollPanelWithRightBar">
                     <Stack ID="RemarkTextStack" Anchor="L,T" Offset="10,0" StackGrowth="Down"/>
                 </ScrollPanel>
             </Grid>
 ```
+
 其中，ScrollPanel 表示滚动面板， Style="ScrollPanelWithRightBar"表示这个滚动面板自带滚动条，Stack表示这个面板里面放置了一个容器，我们的目的就是把要记录的信息填写到这个Stack容器里面，堆叠方式为StackGrowth="Down"：自上而下依次堆叠。
 
->**笔记笔记**
->有些滚动面板如果不写自带滚动条的话，需要在里面把滚动条写上，类似下面这样：
->```xml
+> **笔记笔记**
+> 有些滚动面板如果不写自带滚动条的话，需要在里面把滚动条写上，类似下面这样：
+>
+> ```xml
 >           <ScrollPanel ID="RemarkAllUnitsText" Vertical="1" Size="parent-5,parent-100" AutoScrollBar="1" Anchor="L,T" Offset="3,55">
 >               <Stack ID="RemarkTextStack" StackGrowth="Down" Padding="2"  Anchor="C,T" />
 >               <ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />
 >           </ScrollPanel>
->```
->其中Vertical="1"表示垂直滚动，AutoScrollBar="1"表示当内容超出时自动显示滚动条， `<ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />` 这部分就是滚动条的相关代码，ScrollBar表示滚动条。
+> ```
+>
+> 其中Vertical="1"表示垂直滚动，AutoScrollBar="1"表示当内容超出时自动显示滚动条， `<ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />` 这部分就是滚动条的相关代码，ScrollBar表示滚动条。
 
 然后我们在ID为TabButtons的Stack容器里面写上我们的标签页选择按钮，代码如下：
-```xml      
+
+```xml
             <GridButton ID="SelectTab_RemarkAllUnitsText" Style="TabButton" Size="100,35">
                 <Label Style="FontFlair14" String="LOC_REMARK_ALL_UNITS_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>
             </GridButton>
 ```
+
 最后，我们的面板包含的所有内容的代码看起来是这样：
-```xml      
+
+```xml
     <Container ID="MainContainer" Anchor="C,C" Size="900,600" Offset="0,0">
         <Image ID="ModalBG" Size="parent,parent" Texture="Religion_BG" StretchMode="Tile" ConsumeMouse="1"/>
         <Grid Size="parent,40" Texture="Controls_SubHeader2" ConsumeMouse="1" SliceCorner="20,2" SliceTextureSize="40,40">
@@ -1141,7 +1376,9 @@ ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
         </Tab>
     </Container>  
 ```
-由于我们要记录的信息是动态生成的，所以我们要在xml里面指定一个文本，当我们训练完成单位的时候，在lua端为这个文本显示具体的内容。由于这个文本的内容是动态生成的，所以这里我们的节点要写成`<Instance>`，代码如下：
+
+由于我们要记录的信息是动态生成的，所以我们要在xml里面指定一个文本，当我们训练完成单位的时候，在lua端为这个文本显示具体的内容。由于这个文本的内容是动态生成的，所以这里我们的节点要写成 `<Instance>`，代码如下：
+
 ```xml
     <Instance Name="RemarkTextItem">
         <Stack ID="RemarkTextItemStack" Size="parent-55,40" Anchor="L,C" Offset="0,0" StackGrowth="Down">
@@ -1149,19 +1386,23 @@ ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
         </Stack>
     </Instance>
 ```
+
 其中的Label就是我们的文本，后续我们会在lua端调用它，让它显示我们需要的文本内容。
 
 至此xml部分就写完了，接下来是lua部分。
 
 关于lua的写法，首先我们要明白，我们的目的是我们每次训练完成一个单位，面板上就会记录我们在第几回合，在哪个城市，训练了什么类型的单位。所以，这个文本的记录需要一个事件来触发，这个事件就是Events.CityProductionCompleted，即城市生产完成时。然后当我们训练一个单位时，这个事件会传递五个参数：
+
 ```lua
 Events.CityProductionCompleted(playerID [number], cityID [number], iConstructionType [number], unitID [number], bCancelled [boolean])
 ```
+
 iConstructionTyp == 0 表示单位生产完成，然后我们就可以写触发文本的操作，为RemarkUnitsText设置合适的文本即可。
 
 但是这有一个问题，就是我们所填写的这个文本不能长久保留，如果我们直接为RemarkUnitsText设置文本，那么游戏在存档和读档的时候，这个文本的内容就丢失了，不会被长久保留下来。为此，我们需要一个办法，让我们所设置的文本在读档的时候不会丢失，可以在一局游戏中一直存在。那么最常用的办法就是设置property，我们可以设置property为一个表格，把我们要显示的文本储存在这个表中，每次我们单位训练完成时，往这个表中插入我们需要显示的文本，然后在我们每次打开面板的时候调用这个表，把其中的每一条信息赋值给RemarkUnitsText，这样才能把里面记录的文本逐条显示出来。
 
 首先我们先定义一个表格：
+
 ```lua
 function KianaCityUnitsCompleted(playerID, cityID, iConstructionType, itemID, bCancelled)
     local pPlayer = Players[playerID];
@@ -1173,7 +1414,9 @@ function Initialize()
 end
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
+
 然后设置我们需要填写的文本内容：
+
 ```lua
     local pCity = CityManager.GetCity(playerID, cityID);
     local cityname = pCity:GetName()  --获取城市名字
@@ -1181,23 +1424,27 @@ Events.LoadGameViewStateDone.Add(Initialize)
     local CurrentTurn = Locale.Lookup('LOC_CURRENT_TURN_NAME', nowturn)  --第（）回合
     local YourCity = Locale.Lookup('LOC_YOUR_CITY_NAME', cityname)  --您的城市（）训练了
     if iConstructionType == 0 then  --如果是单位
-        local UnitName = Locale.Lookup(GameInfo.Units[itemID].Name)  --区域名称     
+        local UnitName = Locale.Lookup(GameInfo.Units[itemID].Name)  --区域名称   
         local str = (CurrentTurn .. " " .. YourCity .. " " .. UnitName) -- 获取文本
 ```
+
 这样，str 就是我们需要显示的文本，接下来我们要把这个文本储存到NewString这个表中，可以这样写：
+
 ```lua
     table.insert(NewString, str) -- 将文本添加到玩家属性中
     pPlayer:SetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING", NewString) -- 更新玩家属性
 ```
 
->**注意脚下**
+> **注意脚下**
 >
->```lua
+> ```lua
 >       pPlayer:SetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING", NewString) 
->```
->注意：这个代码中`pPlayer:SetProperty`只能写在gp环境里面，在UI环境里面是不能`SetProperty`的，UI环境只能读取Property，即UI环境下只能`pPlayer:GetProperty`。所以我们上面的代码只能写在gp环境里面，然后在UI端读取它们。
+> ```
+>
+> 注意：这个代码中 `pPlayer:SetProperty`只能写在gp环境里面，在UI环境里面是不能 `SetProperty`的，UI环境只能读取Property，即UI环境下只能 `pPlayer:GetProperty`。所以我们上面的代码只能写在gp环境里面，然后在UI端读取它们。
 
 最后加上领袖的判断，这里以阿基坦的埃莉诺（法国）为例，我们完整的代码应该是这样的：
+
 ```lua
 local ELEANOR_FRANCE = "LEADER_ELEANOR_FRANCE"
 
@@ -1213,7 +1460,7 @@ function KianaCityUnitsCompleted(playerID, cityID, iConstructionType, itemID, bC
     local CurrentTurn = Locale.Lookup('LOC_CURRENT_TURN_NAME', nowturn)  --第（）回合
     local YourCity = Locale.Lookup('LOC_YOUR_CITY_NAME', cityname)  --您的城市（）训练了
     if iConstructionType == 0 then
-        local UnitName = Locale.Lookup(GameInfo.Units[itemID].Name)  --区域名称     
+        local UnitName = Locale.Lookup(GameInfo.Units[itemID].Name)  --区域名称   
         local str = (CurrentTurn .. " " .. YourCity .. " " .. UnitName) -- 获取文本
         local NewString = pPlayer:GetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING") or {}
         table.insert(NewString, str) -- 将文本添加到玩家属性中
@@ -1230,57 +1477,74 @@ Events.LoadGameViewStateDone.Add(Initialize)
 好了，gp端存储文本内容的代码我们就写好了，接下来只需要在UI端读取并显示就可以了。
 
 首先，我们需要调用InstanceManager类的构造函数，创建一个新的管理器，这样我们才能对xml里面定义的RemarkUnitsText这个文本进行操作。还记得上一节我们提到的这个函数：InstanceManager:new() 吗？当时是这样的：
+
 ```lua
 local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "LaunchKianaItemButton")
 local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
 ```
+
 我们当时说了，这个函数包括两个参数，第一个参数：LaunchKianaItem 是我们在xml里面创建的面板启动按钮实例的模板名，第二个参数LaunchKianaItemButton 是根控件的ID。这里我们并没有写这个按钮应该绑定到哪个控件上，因为在后面绑定UI控件的初始化函数中已经写了：
+
 ```lua
     local ctrl = ContextPtr:LookUpControl("/InGame/LaunchBar/ButtonStack")  
 ```
+
 上面是我们绑定UI控件的路径，所以我们在InstanceManager:new()这个函数里面没有写它应该被绑定到哪个控件上。但是这里我们需要显示的文本并没有指定需要绑定的控件，根据我们在xml里面写的代码：
-```xml        
+
+```xml
         <Grid ID="RemarkAllUnitsText" Size="parent,parent-20" Offset="20,50" Texture="Religion_OverviewFrame" SliceCorner="15,15" >  
             <ScrollPanel ID="RemarkTextScrollPanel" Anchor="L,T" Size="parent,parent" Offset="0,0" AutoSizePadding="2,0" Style="ScrollPanelWithRightBar">
                 <Stack ID="RemarkTextStack" Anchor="L,T" Offset="10,0" StackGrowth="Down"/>
             </ScrollPanel>
         </Grid>
 ```
+
 我们希望文本应该要绑定到 Stack ID="RemarkTextStack" 的控件上。所以这个时候，我们就要用到这个函数的第三个参数：指定父控件。这里我们不需要写一个新路径上去，因为这个UI面板是我们自己写的，不是官方的，这里我们只需要这样写：Controls.RemarkTextStack就行了，即Controls.后面接上我们需要绑定的控件的ID即可：
+
 ```lua
 local m_LaunchItemRemarkInstanceManager = InstanceManager:new("RemarkTextItem", "RemarkTextItemStack",Controls.RemarkTextStack)
 ```
+
 这样我们就为RemarkTextItemStack这个容器绑定了父控件。后面只需这样调用：
+
 ```lua
         local RemarkUnitsInst = m_LaunchItemRemarkInstanceManager:GetInstance()
 ```
+
 即可显示我们的内容。
 
 注意，由于我们的文本内容是实时更新的，所以每次我们打开UI界面刷新文本内容时都可能会不同，所以我们在打开UI界面的时候，需要先清除之前生成过的UI实例，然后再创建一个新的UI实例，不然文本内容就会错乱。我们在函数的开头这样写：
+
 ```lua
 function RefreshALLUnitsText()
     m_LaunchItemRemarkInstanceManager:ResetInstances() -- 重置实例管理器  
 end
 ```
+
 其中ResetInstances()表示重置实例管理器，清除之前生成过的UI实例。然后我们获取Property中的记录文本信息：
+
 ```lua
 function RefreshALLUnitsText()
     m_LaunchItemRemarkInstanceManager:ResetInstances() -- 重置实例管理器  
     local RewardString = m_pCurrentPlayer:GetProperty("KIANA_UNITS_HAVE_COMPLETE_STRING") or {} 
 end
 ```
+
 其中RewardString是一个表，里面记录了我们要显示的所有内容。接下来，我们要做一个表为空的处理方式；即我们还没有训练任何一个单位时，这个时候RewardString是一个空表，我们这样处理：
+
 ```lua
     if #RewardString == 0 then
         local RemarkUnitsInst = m_LaunchItemRemarkInstanceManager:GetInstance()
         RemarkUnitsInst.RemarkUnitsText:LocalizeAndSetText(Locale.Lookup('LOC_KIANA_ALL_CITIES_UNCOMPLETE_UNITS')) -- 如果没有训练任何单位，就在面板上显示默认文本：即LOC_KIANA_ALL_CITIES_UNCOMPLETE_UNITS
     end
 ```
+
 `LOC_KIANA_ALL_CITIES_UNCOMPLETE_UNITS`我们需要在text文件里面翻译一下，这里我写的是：“你目前还没有训练任何单位！“  见下图：
 
 ![alt text](img/image4.jpg)
 
 然后当表不为空的时候，把文本逐条显示出来就可以了：
+
 ```lua
     for i = 1, #RewardString do
         local RemarkUnitsInst = m_LaunchItemRemarkInstanceManager:GetInstance()
@@ -1288,7 +1552,9 @@ end
         RemarkUnitsInst.RemarkUnitsText:LocalizeAndSetText(str)
     end
 ```
+
 最后写上这个函数的刷新时机：当我们打开面板的时候调用这个函数，即可显示最新的文本信息，在function ShowKIANAWindow() 函数里面这样写：
+
 ```lua
 function ShowKIANAWindow() 
     ContextPtr:SetHide(false)  -- 显示窗口
@@ -1296,7 +1562,9 @@ function ShowKIANAWindow()
     UI.PlaySound("UI_Screen_Open") -- 播放打开音效
 end
 ```
+
 最后我们的UI部分的代码看起来是这样的：
+
 ```lua
 include("InstanceManager");  -- 引入游戏引擎的实例管理系统
 
@@ -1424,12 +1692,12 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
 
 同理，我们也可以按照该方法记录玩家建造建筑的信息，完成项目的信息，等等。
 
->**注意脚下**
->但是有一个地方要注意，就是我们在建造区域的时候，这个事件：Events.CityProductionCompleted.Add()会被触发两次，这是官方的bug，如果我们要记录我们建造区域的信息，那么使用这个事件监听，我们的界面就会变成这样：
+> **注意脚下**
+> 但是有一个地方要注意，就是我们在建造区域的时候，这个事件：Events.CityProductionCompleted.Add()会被触发两次，这是官方的bug，如果我们要记录我们建造区域的信息，那么使用这个事件监听，我们的界面就会变成这样：
 >
->![alt text](img/image5.jpg)
+> ![alt text](img/image5.jpg)
 >
->所以目前也没有什么好的解决办法。。。
+> 所以目前也没有什么好的解决办法。。。
 
 下一节我们会在UI界面上创建按钮，并实现一些简单的功能。
 
