@@ -695,12 +695,19 @@ SiqiBinaryList = {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,6
 -- 输入一个数和位数n，输出n位的二进制数组
 function Siqi_10to2(num, n)
     local result = {}
-    for i = 1, n do
-        local bitValue = (num % 2)
-        table.insert(result, bitValue)
-        num = math.floor(num / 2)
+    for i = n, 1, -1 do
+        if num >= SiqiBinaryList[i] then
+            table.insert(result, 1)
+            num = num - SiqiBinaryList[i]
+        else
+            table.insert(result, 0)
+        end
     end
-    return result
+    local list = {}
+    for i = 1, #result do
+        list[i] = result[#result - i + 1]
+    end
+    return list
 end
 
 -- 输入一个二进制数组，输出对应的数
@@ -801,7 +808,7 @@ end
 
 假如我们城市的宜居度提升了，变成了7，需要14科技。那么我们需要补4的科技差值，不过我们最终都是直接设置单元格的Property状态，所有直接获得新科技值的二进制即可。
 
-14 = 0* 1 + 1* 2 + 1* 4 + 1* 8 + 0* 16 + 0* 32 + 0 *64 
+14 = 0* 1 + 1* 2 + 1* 4 + 1* 8 + 0* 16 + 0* 32 + 0 *64
 
 0，1，1，1，0，0，0
 
@@ -809,6 +816,28 @@ end
 
 local NewAmount_2 = Siqi_10to2(Amount_10 , 7)
 
+```
+
+10进制转2进制的代码很简单，输入一个数和位数，由于我们只写了7个modifier，所以只需要7位二进制数，如果超出上限也只会全部输出1，这里与常规的求余取二进制数不同，我们通过减法的方式来求二进制数，这样，如果数值大于上限值，那么结果会输出全部是1，若是求余，数值一旦溢出，就会进入新的循环，也就是从0开始。
+
+```lua
+-- 输入一个数和位数n，输出n位的二进制数组
+function Siqi_10to2(num, n)
+    local result = {}
+    for i = n, 1, -1 do
+        if num >= SiqiBinaryList[i] then
+            table.insert(result, 1)
+            num = num - SiqiBinaryList[i]
+        else
+            table.insert(result, 0)
+        end
+    end
+    local list = {}
+    for i = 1, #result do
+        list[i] = result[#result - i + 1]
+    end
+    return list
+end
 ```
 
 **第五步**：设置科技值
@@ -819,17 +848,135 @@ local NewAmount_2 = Siqi_10to2(Amount_10 , 7)
 Siqi_SetPlotProperty(pPlot:GetIndex(), NewAmount_2 , 'REQ_SIQI_MOD2_PROPERTY_')
 ```
 
+我们通过下面的函数来设置单元格的Property值，虽然是直接设置，但我们依然要获取老数值，然后判断是否相等，不相等再设置值，这样可以减少性能消耗。例如第三步所说的，原来为10：
+
+0，1，0，1，0，0，0
+
+第四步所说的，新的为14：
+
+0，1，1，1，0，0，0
+
+发现只有1个数值要改，这样就大大节约了性能消耗。
+
+> 注意脚下：著名modder马良的作品：模块化相邻加成 一开始是非常卡的，后期过回合要好几分钟，然而，在加入了相同值判断后，立马大幅度优化了性能，只需要几秒钟就能过回合了。这个故事告诉我们，凡是要改变游戏数据的，频繁修改都会很卡（）
+
+```lua
+-- 设置单元格的property值 UI端无法使用
+function Siqi_SetPlotProperty(plotIndex, newproperty, sProperty)
+    local pPlot = Map.GetPlotByIndex(plotIndex)
+    local oldproperty = Siqi_GetPlotProperty(plotIndex, sProperty) -- 获取当前单元格的属性值
+    for i = 1, #newproperty do
+        if newproperty[i] and newproperty[i] ~= oldproperty[i] then
+            pPlot:SetProperty(sProperty .. SiqiBinaryList[i], newproperty[i])
+        end
+    end
+end
+```
+
+很简单吧，刷新逻辑，现在应该开始思考什么时候刷新了。
+
+考虑到城市什么变化时会影响宜居度：
+
+人口变化，城市建立，城市完成生产，改良的建立与移除，伟人的激活（主要是大工）
+
+事实上还有政策卡，其他城市的奇观，娱乐建筑等等因素，但是这些判断起来太麻烦了，所以我们选择：回合结束时统一刷新。
+
+于是，我们得到了：
+
+```lua
+
+-- ========================================刷新函数========================================================
+-- 玩家回合结束时，遍历所有城市刷新宜居度
+function SiqiOnPlayerTurnDeactivatedRe(playerID)
+    local pPlayer = Players[playerID];  --获取玩家
+    for i, pCity in pPlayer:GetCities():Members() do -- 遍历玩家城市
+        local CityID = pCity:GetID();  --获取城市ID
+        Refresh(playerID, CityID);  --设置城市的宜居度properties
+    end
+end
+
+-- 城市完成生产时，该城市刷新宜居度
+function SiqiOnCityProductionCompletedRe(playerID, cityID, orderType, unitType, canceled, typeModifier)
+    Refresh(playerID, cityID);  --设置城市的宜居度properties
+end
+
+-- 城市公民改变时，该城市刷新宜居度
+function SiqiOnCityWorkerChangedRe(playerID, cityID, iX, iY)
+    Refresh(playerID, cityID);  --设置城市的宜居度properties
+end
+
+-- 玩家伟人激活时，所有城市刷新宜居度
+function SiqiOnUnitGreatPersonActivatedRe(unitOwner, unitID, greatPersonClassID, greatPersonIndividualID)
+    SiqiOnPlayerTurnDeactivatedRe(unitOwner);  --调用玩家回合结束时的函数，刷新宜居度 
+end
+
+-- 添加改良时，城市刷新宜居度
+function OnImprovementAddedToMap(iX, iY, eImprovement, playerID)
+    local pPlot = Map.GetPlot(iX, iY);
+    local pCity = Cities.GetPlotPurchaseCity(pPlot);
+    if not pCity then return; end
+    local cityID = pCity:GetID();
+    Refresh(playerID, cityID);  --设置城市的宜居度properties
+end
+
+-- 移除改良时，城市刷新宜居度，这里直接调用添加改良的函数
+function OnImprovementRemovedFromMap( locX :number, locY :number, eOwner :number )
+    OnImprovementAddedToMap(locX, locY, -1, eOwner);
+end
+
+-- 城市建成时，刷新城市宜居度
+function SiqiOnCityBuiltRe(playerID, cityID, cityX , cityY)
+    Refresh(playerID, cityID);  --设置城市的宜居度properties
+end
 
 
-很简单吧，刷新逻辑，现在应该开始思考什么时候刷新了、
+
+function Initialize()
+    --===============宜居度刷新事件===================================
+    Events.PlayerTurnDeactivated.Add(SiqiOnPlayerTurnDeactivatedRe)              --玩家回合结束时
+    Events.CityProductionCompleted.Add(SiqiOnCityProductionCompletedRe)          --城市生产完成时
+    Events.CityWorkerChanged.Add(SiqiOnCityWorkerChangedRe)                      --城市公民改变时
+    Events.UnitGreatPersonActivated.Add(SiqiOnUnitGreatPersonActivatedRe)        --伟人激活时
+    Events.ImprovementAddedToMap.Add( OnImprovementAddedToMap )                  --地图上添加改良时
+    Events.ImprovementRemovedFromMap.Add( OnImprovementRemovedFromMap )          --地图上移除改良时
+    GameEvents.CityBuilt.Add(SiqiOnCityBuiltRe)                                  --城市建造时
+    --===============================================================
+end
 
 
+Events.LoadGameViewStateDone.Add(Initialize)
 
-#### 1.3 UI界面设计
+```
+
+看上去很复杂，其实调用的都是同一个函数Refresh()，只是因为输入参数的差距导致不得不分别处理而已。
+
+如此，我们就轻松简单的完成了城市宜居度转2科技的mod了，完整版可在
+
+**宜居度转科技产出**
+
+文件夹里查看。
+
+#### 1.3 往官方UI塞点东西
+
+##### 1.3.1 添加一种新的产出来源
+
+本节是接二进制产出的新项目。
+
+我们在设计和写代码时，往往会遇到一个问题：+X 产出来源于修正值，对于一些追求细节的modder来说会感到难受。这里我们通过函数重定义的方式来修改官方代码，这种方法的兼容性会更好。例如，我们只是想改一下城市产出UI，但是这势必会与同样改了这个UI的mod冲突，例如黄金时代mod。我们不愿意见到这些冲突，于是给出下面的解法：
+
+宜居度转产已经在**1.2.3**节讲得很清楚了，我们在此继续完善此mod，让我们的科技值能在城市面板里显示出来，而不仅仅是+2 修正值。
+
+###### 1、官方文本函数
+
+在
+
+###### 2、
+
+#### 1.4 UI界面设计
 
 本节我们将尝试制作UI界面，以及一些常用的控件使用方法；由于UI界面设计较为复杂，我们将从一个最简单的界面设计开始，带大家一步步深入探讨。
 
-##### 1.2.1 设计一个简单面板
+##### 1.4.1 设计一个简单面板
 
 本小节我们先从设计一个最简单的UI面板开始，假如我们要设计如下面板：
 ![alt text](img/image1.jpg)
@@ -975,7 +1122,7 @@ Style="TabButton": 应用一个名为"TabButton"的预定义样式，尺寸为�
 ###### **2、xml部分：启动按钮**
 
 现在我们已经在xml文件里面写上了该面板所包涵的所有内容。接下来我们要写打开这个面板的启动按钮（注意我们左上角自定义的按钮）。
-这里我们的节点要写成`<Instance>`: 这不是一个直接显示在界面上的元素，而是一个模板（或蓝图）。它可以被游戏的其他部分或Lua脚本多次“实例化”和调用，从而避免重复编写相同的UI代码。
+这里我们的节点要写成 `<Instance>`: 这不是一个直接显示在界面上的元素，而是一个模板（或蓝图）。它可以被游戏的其他部分或Lua脚本多次“实例化”和调用，从而避免重复编写相同的UI代码。
 我们在xml里面写上这个启动按钮，具体代码如下：
 
 ```xml
@@ -1018,7 +1165,7 @@ ToolTip="LOC_KIANA_ENTRY_BUTTON_TOOLTIP"：按钮的鼠标悬停提示：定义�
 这里定义了按钮的图片，ID为LaunchItemIcon，这里采用自定义图片，名称是KianaEntryIcon.dds，大小为35*35像素，锚点为居中，偏移量为向下偏移1个像素，Hidden="0"：默认显示（如果Hidden="1"就是默认隐藏）。
 
 > **笔记笔记**：
-> 关于图片的加载，有两种方法：第一种是直接在modinfo里面的`<ImportFiles>`节点填上图片的路径：
+> 关于图片的加载，有两种方法：第一种是直接在modinfo里面的 `<ImportFiles>`节点填上图片的路径：
 >
 > ```modinfo
 >      <ImportFiles id="KianaInclude">
@@ -1085,7 +1232,7 @@ local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstanc
 后面 `local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")`同理，就是把启动栏标记点模板也写进去。
 
 > **笔记笔记**
-> 所以，一般我们写xml的时候，都在`<Instance></Instance>`里面再套一层容器，比如这里就是`<Button></Button>`，有些代码里面会是`<Container></Container>`,这样我们在lua里面调用这个实例的时候，就会把`<Instance>`里面定义的所有内容全都包含进去。
+> 所以，一般我们写xml的时候，都在 `<Instance></Instance>`里面再套一层容器，比如这里就是 `<Button></Button>`，有些代码里面会是 `<Container></Container>`,这样我们在lua里面调用这个实例的时候，就会把 `<Instance>`里面定义的所有内容全都包含进去。
 > 其实这个函数InstanceManager:new()不止上面提到的两个参数，它还有第三个参数，只是这里我们暂时用不到，后面我们在写记录文本以及新建按钮的时候会用到，到时候会再跟大家详细解释这个函数。
 
 之后，我们写上按钮的初始化代码：
@@ -1293,7 +1440,7 @@ ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
 
 至此，我们的所有工作就都做完了。最后在Text.xml里面写上翻译文本，这个mod就做完了。但是我们这个UI界面并没有什么实际的功能，下一节我们会给这个UI界面设定一个简单的功能：记录玩家的实时信息。
 
-##### 1.2.2 设计记录信息面板
+##### 1.4.2 设计记录信息面板
 
 本节我们将尝试设计一个记录实时信息的面板。比如，我们现在要设计一个面板，记录玩家建造单位的详细信息，格式为：第（1）回合：您的城市（2）：训练了一个（3）。其中1记录玩家的当前回合数，2记录玩家建造单位的城市，3记录玩家建造单位的具体类型。
 
@@ -1701,4 +1848,4 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
 
 下一节我们会在UI界面上创建按钮，并实现一些简单的功能。
 
-##### 1.2.3 设计按钮功能
+##### 1.4.3 设计按钮功能
