@@ -956,7 +956,7 @@ Events.LoadGameViewStateDone.Add(Initialize)
 
 文件夹里查看。
 
-#### 1.3 往官方UI塞点东西
+#### 1.3 替换UI
 
 ##### 1.3.1 添加一种新的产出来源
 
@@ -966,11 +966,144 @@ Events.LoadGameViewStateDone.Add(Initialize)
 
 宜居度转产已经在**1.2.3**节讲得很清楚了，我们在此继续完善此mod，让我们的科技值能在城市面板里显示出来，而不仅仅是+2 修正值。
 
-###### 1、官方文本函数
+###### **1、官方文本函数**
 
-在
+通过官方的 **pCity:GetYieldToolTip(YieldTypes.SCIENCE)** 函数可以获取下面的文本
 
-###### 2、
+```
++112来自修正值[NEWLINE]+3 来自区域（总计）[NEWLINE] [ICON_Bullet]+3来自学院[NEWLINE]+2.5来自全体人民[NEWLINE]+4 来自建筑（总计）[NEWLINE] [ICON_Bullet]+2来自埃特曼安吉神庙[NEWLINE] [ICON_Bullet]+2来自图书馆[NEWLINE]+3来自开发过的单元格[NEWLINE]+20（+24.8）来自宜居度
+```
+
+看上去结构有点乱，我们把换行加入看看呢
+
+```
++112来自修正值
++3 来自区域（总计）
+ [ICON_Bullet]+3来自学院
++2.5来自全体人民
++4 来自建筑（总计）
+ [ICON_Bullet]+2来自埃特曼安吉神庙
+ [ICON_Bullet]+2来自图书馆
++3来自开发过的单元格
++20（+24.8）来自宜居度
+```
+
+是不是眼熟了许多？这个函数由于是写在dll里的，我们无法直接修改，但我们可以通过官方的UpdateYieldData函数来间接修改结构，这里我们就需要使用一些字符串处理的技巧了。如果你学过正则表达式的话，下面的代码应该会很好理解。
+
+###### **2、文本替换**
+
+我们先写一个提取修正值数值和修改文本数值的函数：
+
+```lua
+local FROM_MODIFIER = Locale.Lookup("LOC_SIQI_UI_FROM_MODIFIERS_TEXT")
+local FROM_MODIFIER_MATCH = "%+(%d+)%" .. FROM_MODIFIER
+
+-- 提取字符串中修正值的部分
+function GetModifierValue(originalString)
+    return tonumber(string.match(originalString, FROM_MODIFIER_MATCH))
+end
+
+function SetModifierValue(originalString, newValue)
+    if newValue == 0 then
+        local s = string.gsub(originalString, "%s*%+%d+%" .. FROM_MODIFIER, "") or originalString
+        return string.gsub(s, "^%[NEWLINE%]", "") or s
+    end
+    if newValue < 0 then
+        return string.gsub(originalString, FROM_MODIFIER_MATCH, newValue..FROM_MODIFIER) or originalString
+    end
+    return string.gsub(originalString, FROM_MODIFIER_MATCH, "+"..newValue..FROM_MODIFIER) or originalString
+end
+
+```
+
+LOC_SIQI_UI_FROM_MODIFIERS_TEXT是文本：来自修正值，通过这种方法可以适配多语言环境。
+
+SetModifierValue()看似复杂，实际很简单，为0的时候，就把前面的+X来自修正值删掉，然后删换行符，这里不能直接换，需要判断前面的是换行符才能换，不然可能出现不可预料的bug。
+
+小于0的时候就不给加号，大于0的时候就正常给加号。实际上整个函数就只是做了这件事。
+
+###### **3、数据获取**
+
+现在我们需要获取需要的数值，还记得二进制时的代码吗？这里可以直接复制下来：
+
+```lua
+local SiqiBinaryList = {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536} -- 全局二进制位列表
+
+-- 输入一个二进制数组，输出对应的数
+function Siqi_2to10(binaryArray)
+    local result = 0
+    for i, bitValue in ipairs(binaryArray) do
+        result = result + bitValue * SiqiBinaryList[i]
+    end
+    return result
+end
+
+-- 获取单元格的property值
+function Siqi_GetPlotProperty(plotIndex, sProperty)
+    local pPlot = Map.GetPlotByIndex(plotIndex)
+    local property = {}
+    for i = 1, #SiqiBinaryList do
+        table.insert(property, pPlot:GetProperty(sProperty .. SiqiBinaryList[i]) or 0)
+    end
+    return property
+end
+
+function Siqi_GetCityScienceFromAmenity(pCity)
+    if not pCity then return 0; end
+    local pPlot = Map.GetPlot(pCity:GetX(), pCity:GetY());
+    local property = Siqi_GetPlotProperty(pPlot:GetIndex(), "REQ_SIQI_MOD2_PROPERTY_")
+    return Siqi_2to10(property)
+end
+```
+
+并且写一个新的函数，用来获取城市来自宜居度的科技值。
+
+###### **4、替换文本**
+
+前置工作基本完成了，现在我们来干正事吧，看似很难，其实也不简单。
+
+首先我们需要确保我们的文件能被正确加载，在modinfo这样写：
+
+```xml
+    <ReplaceUIScript id="ReplaceUIScript">
+      <Properties>
+        <LoadOrder>20000</LoadOrder>
+        <LuaContext>CityPanel</LuaContext>
+        <LuaReplace>CityPanel_Siqi_Mod2.lua</LuaReplace>
+      </Properties>
+    </ReplaceUIScript>
+```
+
+然后再在CityPanel_Siqi_Mod2.lua文件这样写：
+
+```lua
+include("CityPanel");
+
+local BASE_ViewMain = ViewMain -- 函数重定义，将原本的函数存到这里，方便后续调用
+
+function ViewMain( data:table)
+    local pCity = UI.GetHeadSelectedCity() -- 获取当前选中的城市
+    local Amount = Siqi_GetCityScienceFromAmenity(pCity); -- 获取城市宜居度转化的科技值
+    if Amount > 0 then
+        local originalSciencePerTurn = GetModifierValue(data.SciencePerTurnToolTip) or 0; -- 提取原有修正值
+        local newSciencePerTurn = originalSciencePerTurn - Amount; -- 计算新的修正值
+        data.SciencePerTurnToolTip = SetModifierValue(data.SciencePerTurnToolTip, newSciencePerTurn); -- 设置新的修正值
+        data.SciencePerTurnToolTip = data.SciencePerTurnToolTip .. "[NEWLINE]" .. Locale.Lookup("LOC_SIQI_UI_FROM_AMENITY_TO_SCIENCE", Amount); -- 添加新的文本
+    end
+    BASE_ViewMain(data); -- 调用原始的ViewMain函数
+end
+```
+
+没错，就这么短，因为大部分处理都在前面的工具函数里了，所有这里只需要做3件事：获取科技值，减少修正值，添加想要的文本。
+
+完成后，我们把修正的数据送回原本的函数里，让其按照原有逻辑继续运行，毕竟我们只是想小小修改一句话。
+
+完整版代码可以在
+
+**宜居度转科技产出**
+
+文件夹里看到。
+
 
 #### 1.4 UI界面设计
 

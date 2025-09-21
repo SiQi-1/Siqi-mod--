@@ -5,7 +5,7 @@
     <Description>每一点[ICON_Amenities]宜居度都可以转化为2点[ICON_Science]科技值产出</Description>
     <Created>1758390042</Created>
     <Teaser>宜居度转科技值产出</Teaser>
-    <Authors>24948</Authors>
+    <Authors>Siqi</Authors>
     <CompatibleVersions>1.2,2.0</CompatibleVersions>
   </Properties>
   <Dependencies>
@@ -17,9 +17,21 @@
     <UpdateDatabase id="UpdateDatabase">
       <File>Siqi_Mod2_Modifiers.sql</File>
     </UpdateDatabase>
+    <ReplaceUIScript id="ReplaceUIScript">
+      <Properties>
+        <LoadOrder>20000</LoadOrder>
+        <LuaContext>CityPanel</LuaContext>
+        <LuaReplace>CityPanel_Siqi_Mod2.lua</LuaReplace>
+      </Properties>
+    </ReplaceUIScript>
+    <UpdateText id="text">
+      <File>Siqi_Mod2_Text.sql</File>
+    </UpdateText>
   </InGameActions>
   <Files>
     <File>Siqi_Mod2_Modifiers.sql</File>
     <File>Siqi_Mod2_GamePlay.lua</File>
+    <File>CityPanel_Siqi_Mod2.lua</File>
+    <File>Siqi_Mod2_Text.sql</File>
   </Files>
 </Mod>
