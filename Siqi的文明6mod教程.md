@@ -2039,7 +2039,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
                 <Label ID="Loadleader" String="LOC_LEADER" Anchor="R,T" Offset="25,25" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
         </Grid>
 ```
-然后还有一个堆叠容器，根据前面的教程，其类型应该是<Stack></Stack>；该Stack容器里面包涵一个滚动面板ScrollPanel，ScrollPanel里面还要有一个Stack，堆叠方式`StackGrowth`应该填`Down`（自上而下依次堆叠），我们所有的文明和领袖图标都要放在这个Stack里面；除此之外还要有一个滚动条。我们的代码看起来像这样：
+然后还有一个堆叠容器，根据前面的教程，其类型应该是<Stack>；该Stack容器里面包涵一个滚动面板ScrollPanel，ScrollPanel里面还要有一个Stack，堆叠方式`StackGrowth`应该填`Down`（自上而下依次堆叠），我们所有的文明和领袖图标都要放在这个Stack里面；除此之外还要有一个滚动条。我们的代码看起来像这样：
 
 ```xml
         <Grid ID="loadplayer" Size="165,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
@@ -2115,7 +2115,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
     </Container>
 ```
 
-之后是Instance部分，首先我们先写玩家的部分，对于每一个玩家，我们都要生成其对应的文明图标和领袖图标，由于我们点击对应领袖的图标就会显示该领袖（该玩家）的所有城市，所以该图标应该放在一个按钮里面，然后文明图标和领袖图标也要放在一个<Grid</Grid>控件里面，对于控件的边框样式，我们依然采用一个名为`Religion_OverviewFrame`的纹理作为这个控件的背景。具体代码如下：
+之后是Instance部分，首先我们先写玩家的部分，对于每一个玩家，我们都要生成其对应的文明图标和领袖图标，由于我们点击对应领袖的图标就会显示该领袖（该玩家）的所有城市，所以该图标应该放在一个按钮里面，然后文明图标和领袖图标也要放在一个<Grid>控件里面，对于控件的边框样式，我们依然采用一个名为`Religion_OverviewFrame`的纹理作为这个控件的背景。具体代码如下：
 
 ```xml
     <Instance Name="SelectPlayer">
@@ -2132,7 +2132,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
 	</Instance>
 ```
 
-然后是玩家城市部分，内容与上面的差不多，也是每一个城市对应一个<Grid</Grid>控件，左边有市中心的图标，图标的右边是该城市具体名字。对于图标和城市名字，我们可以写在一个Stack控件里面，堆叠方式为StackGrowth="Right"，自左向右依次堆叠；为了让城市名字与图标之间有一定的间距，我们可以设置Stack控件里面子元素之间的间距，`StackPadding="20"`代表子元素之间间距为20像素。代码如下：
+然后是玩家城市部分，内容与上面的差不多，也是每一个城市对应一个<Grid>控件，左边有市中心的图标，图标的右边是该城市具体名字。对于图标和城市名字，我们可以写在一个Stack控件里面，堆叠方式为StackGrowth="Right"，自左向右依次堆叠；为了让城市名字与图标之间有一定的间距，我们可以设置Stack控件里面子元素之间的间距，`StackPadding="20"`代表子元素之间间距为20像素。代码如下：
 
 ```xml
     <Instance Name="SelectCity">
