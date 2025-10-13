@@ -2290,3 +2290,123 @@ function Initialize()
 end
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
+
+接下来是最关键的部分：如何获取场上所有玩家和城市。首先，我们先获取场上所有玩家对应的文明和领袖名字以及图标：
+
+```lua
+function SelectKianaPlayers()  --获取场上所有玩家，并储存
+    local pAllPlayerIDs = PlayerManager.GetAliveMajors();  --获取场上所有存活的主流文明玩家
+    local AllPlayers = {};  -- 初始化一个空表，用于存放最终筛选和处理后的玩家数据
+    for k1, pPlayer in ipairs(pAllPlayerIDs) do  --遍历每一个玩家
+        local pPlayerID = pPlayer:GetID();  --获取该玩家的ID
+        local pPlayerConfig = PlayerConfigurations[pPlayerID];  --获取该玩家信息
+		local CivilizationTypeName = pPlayerConfig:GetCivilizationTypeName()   --获取文明变量名
+        local civName = Locale.Lookup(GameInfo.Civilizations[CivilizationTypeName].Name); --确定文明名字（中文）	
+		local civIcon = "ICON_"..CivilizationTypeName;  --确定文明图标(字符串)
+        local LeaderTypeName = pPlayerConfig:GetLeaderTypeName()    --获取领袖变量名
+		local leaderName;
+        local leadericon = "ICON_"..LeaderTypeName;  --确定领袖图标（字符串）
+		if pPlayer:IsHuman() then  --如果玩家是人类
+			local playerName = Locale.Lookup(pPlayerConfig:GetPlayerName());  --确定玩家的领袖名字（中文）	
+			leaderName = Locale.Lookup(GameInfo.Leaders[LeaderTypeName].Name) .. " ("..Locale.Lookup(playerName)..")"  --确实最终的领袖名字（中文）	
+		else
+			leaderName = Locale.Lookup(GameInfo.Leaders[LeaderTypeName].Name);
+		end
+        local playerTable :table = {   --将上面的信息储存在一个临时表里，后面可直接调用函数获取这个表
+            cName = civName,  --文明名字
+            cIcon = civIcon,  --文明图标
+            lName = leaderName,  --领袖名字
+            lIcon = leadericon,   --领袖图标
+			playerID = pPlayerID,  --玩家ID
+        };
+        if playerTable.lName ~= '' then
+            table.insert(AllPlayers, playerTable)  --将其中一个玩家的信息playerTable插入到表AllPlayers表中
+        end
+    end
+    return AllPlayers  --返回AllPlayers表
+end
+```
+
+然后获取每一个玩家的城市，这里需要传递玩家的ID：
+
+```lua
+function GetPlayerAllCities(pPlayerID)  --获取玩家所有城市，并储存
+	local pPlayer = Players[pPlayerID];  --根据ID获取玩家
+    local playerCities = pPlayer:GetCities()  --获取玩家的城市，playerCities是一个玩家城市的表
+	local AllPlayerCities = {}; -- 初始化一个空表，用于存放最终筛选和处理后的城市数据
+	if(playerCities ~= nil) then
+    	for i, city in playerCities:Members() do  --遍历玩家每一个城市
+			local CityID = city:GetID();  --获取该城市的ID
+			local CityName = Locale.Lookup(city:GetName());  --获取该城市的中文名字
+			local CityIcon = "ICON_DISTRICT_CITY_CENTER"  --获取市中心图标
+            local CityTable:table = {  --将上面的信息储存在一个临时表里，后面可直接调用函数获取这个表
+                playerid = pPlayerID,  --玩家ID
+				cityid = CityID,       --城市ID
+                cityName = CityName,   --城市中文名字
+                cityIcon = CityIcon,   --市中心图标
+            };
+            if CityName ~= '' then
+                table.insert(AllPlayerCities, CityTable) --将其中一个城市的信息CityTable插入到表AllPlayerCities表中
+            end
+        end
+    end
+    return AllPlayerCities --返回AllPlayerCities表
+end
+```
+
+好了，上面所有的玩家信息都已经获取了，接下来就是如何把这些信息显示在我们的UI界面上。首先，我们打开界面，就要刷新场上所有的玩家对应的文明以及领袖信息，所以我们要在`ShowKianaWindow()`函数里面加上一个刷新所有玩家信息的函数：`RefreshAllPlayers()`:
+
+```lua
+function ShowKianaWindow() -- 打开界面
+    ContextPtr:SetHide(false)  -- 显示窗口
+    RefreshAllPlayers() --刷新所有玩家信息
+    UI.PlaySound("UI_Screen_Open") -- 播放打开音效
+end
+```
+
+然后我们写上`RefreshAllPlayers()`这个函数的具体逻辑：
+
+```lua
+function RefreshAllPlayers()--刷新所有玩家信息
+    -- 所有领袖信息
+    local AllPlayers = SelectKianaPlayers()  -- 获取当前游戏中所有的玩家
+    if not AllPlayers then return; end
+    m_LaunchItemInstancePlayerManager:DestroyInstances()  -- 销毁 该管理器当前所控制和维护的所有UI实例。
+    m_LaunchItemInstancePlayerManager:ResetInstances()  --重置 管理器的内部状态。它会将内部计数器归零，并“忘记”之前创建的所有实例
+    if #AllPlayers > 0 then -- 如果场上有玩家（其实这一步可以不用写，因为一局游戏肯定会有玩家的）
+        for i, pPlayer in ipairs(AllPlayers) do  
+            local instance = m_LaunchItemInstancePlayerManager:GetInstance()  -- 为每个玩家创建一个新的UI实例（列表项）
+            instance.LaunchCiv:SetIcon(pPlayer.cIcon)  -- 显示文明图标
+            instance.LaunchPlayer:SetIcon(pPlayer.lIcon)  -- 显示领袖图标
+            instance.AnyCivSelect:SetToolTipString(GetKianaCivTooltipText(pPlayer))-- 设置文明提示文本
+            instance.AnyPlayerSelect:RegisterCallback(Mouse.eLClick, function() RefreshPlayerAllCities(pPlayer.playerID) end) -- 注册点击事件：点击后调用RefreshPlayerAllCities()，刷新玩家城市（注意这里要传递玩家ID）
+            instance.AnyPlayerSelect:SetToolTipString(GetKianaPlayerTooltipText(pPlayer))-- 设置领袖提示文本
+        end
+    else
+    end
+end
+```
+
+然后写上`RefreshPlayerAllCities`这个函数的逻辑，刷新玩家城市：
+
+```lua
+function RefreshPlayerAllCities(playerID)  --根据传递的玩家ID来获取玩家的城市
+    -- 所有城市信息
+    local AllCities = GetPlayerAllCities(playerID)  -- 根据玩家ID，获取当前玩家所有的城市
+    if not AllCities then return; end
+    m_LaunchItemInstanceCityManager:DestroyInstances()  -- 销毁 该管理器当前所控制和维护的所有UI实例。
+    m_LaunchItemInstanceCityManager:ResetInstances()  --重置 管理器的内部状态。它会将内部计数器归零，并“忘记”之前创建的所有实例
+    if #AllCities > 0 then -- 如果玩家有城市
+        Controls.NotBuildCity:SetHide(true)  --将文本["LOC_DO_NOT_BUILD_CITY"：该领袖还未建立任何城市。]隐藏起来
+        for i, pCity in ipairs(AllCities) do  --遍历玩家每一个城市
+            local instance = m_LaunchItemInstanceCityManager:GetInstance()  -- 为每个城市创建一个新的UI实例（列表项）
+            instance.CityPicture:SetIcon(pCity.cityIcon)  -- 显示城市图标
+            instance.CityForName:SetText(pCity.cityName)  -- 显示城市名字
+        end
+    else
+        Controls.NotBuildCity:SetHide(false)  --如果该玩家没有建立城市，则显示文本：["LOC_DO_NOT_BUILD_CITY"：该领袖还未建立任何城市。]
+    end
+end
+```
+
+好啦！至此我们的mod就全部写完了。这个mod可以实时查看所有玩家的城市信息；但是目前我们获取的信息较少，仅有城市的名字。下一节我们将会获取更加详细的信息：获取每个城市的全产出，以及为每个城市添加一个按钮，实现一些功能。
