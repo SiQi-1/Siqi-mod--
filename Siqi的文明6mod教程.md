@@ -2409,4 +2409,16 @@ function RefreshPlayerAllCities(playerID)  --根据传递的玩家ID来获取玩
 end
 ```
 
+最后补充上我们在`RefreshAllPlayers()`函数中写的提示文本：`instance.AnyCivSelect:SetToolTipString(GetKianaCivTooltipText(pPlayer))`和`instance.AnyPlayerSelect:SetToolTipString(GetKianaPlayerTooltipText(pPlayer))`：
+
+```lua
+function GetKianaCivTooltipText(CivilizationTypeName)  -- 提示文本
+    return Locale.Lookup(CivilizationTypeName.cName);
+end
+
+function GetKianaPlayerTooltipText(LeaderTypeName)  -- 提示文本
+    return Locale.Lookup(LeaderTypeName.lName);
+end
+```
+
 好啦！至此我们的mod就全部写完了。这个mod可以实时查看所有玩家的城市信息；但是目前我们获取的信息较少，仅有城市的名字。下一节我们将会获取更加详细的信息：获取每个城市的全产出，以及为每个城市添加一个按钮，实现一些功能。
