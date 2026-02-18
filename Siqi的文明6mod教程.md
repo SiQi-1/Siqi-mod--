@@ -61,7 +61,7 @@ UI.lua
 
 加载.xml文件后会自动加载同名的.lua文件
 
-##### 1.1.1 单位按钮
+##### 1.1.1 单位按钮：移除奢侈品
 
 如果只是做单位按钮，实际上h佬和枫叶佬已经讲得很详细了，所以这里借用单位按钮讲解一些基本原理。
 
@@ -508,6 +508,130 @@ end
 
 于是，一个简单的建造者收割奢侈品的mod就做好了，完整版可以在**建造者收割奢侈品**文件夹里看看
 
+##### 1.1.2 单位按钮：种植奢侈品
+
+能移除奢侈品自然也要能种植奢侈品，传统的方法是通过虚拟改良的方式来种植，或者种植与养殖mod这样写一个UI面板来种植，但是这里我要给出的方案是来自HSbF6HSO3F大佬开发的UI，是使用改良面板修改而来的。
+
+不过种植奢侈品通常也不会免费种植，可能需要结合许多其他机制，这里我就不搞这么多机制了，直接100金币种一次，如果你想用更符合实际的机制，也可以改。
+
+于是，本章节的目的为：**花费100金币在领土内种植任意奢侈品**
+
+在写UI之前，我们应该考虑如何判断资源能否种植在地块上，为此我们学习一种新的写法。
+
+###### **1、资源的对象与方法**
+
+我们常常使用类似pCity:GetX()这种函数，其实就是对象与方法，我们也可以写自己的对象与方法，在这里，我们将一个资源作为对象，用来进行后续的操作。
+
+```lua
+function SiqiResource:new(RecourceType)
+    local info = GameInfo.Resources[RecourceType]
+    local t = {}
+    setmetatable(t, self)
+    self.__index = self
+    t.RecourceType = info.ResourceType
+    t.Index = info.Index
+    t.Hash = info.Hash
+    t.Name = info.Name
+    t.ResourceClassType = info.ResourceClassType
+    t.IconString = "[ICON_"..info.ResourceType.."]"
+    t.ValidFeatures = SiqiResource:GetValidFeatures(info.ResourceType) -- 可用地貌
+    t.ValidTerrains = SiqiResource:GetValidTerrains(info.ResourceType) -- 可用地形
+    t.Improvements = SiqiResource:GetImprovements(info.ResourceType) -- 可用改良
+    t.Yields = SiqiResource:GetYields(info.ResourceType)
+    return t
+end
+```
+
+其中的 `setmetatable(t, self)     self.__index = self` 是固定句式，下面的就是基本信息了。
+
+这些信息根据名字就能知道其具体内容了，现在讲讲出现的4个函数
+```lua
+function SiqiResource:GetValidFeatures(r)
+    local Features = {}
+    for row in GameInfo.Resource_ValidFeatures() do
+        if row.ResourceType == r then
+            Features[row.FeatureType] = true
+        end
+    end
+    return Features
+end
+
+function SiqiResource:GetValidTerrains(r)
+    local Terrains = {}
+    for row in GameInfo.Resource_ValidTerrains() do
+        if row.ResourceType == r then
+            Terrains[row.TerrainType] = true
+        end
+    end
+    return Terrains
+end
+
+function SiqiResource:GetImprovements(r)
+    local Improvements = {}
+    for row in GameInfo.Improvement_ValidResources() do
+        if row.ResourceType == r then
+            Improvements[row.ImprovementType] = true
+        end
+    end
+    return Improvements
+end
+
+function SiqiResource:GetYields(r)
+    local Yields = {}
+    for row in GameInfo.Resource_YieldChanges() do
+        if row.ResourceType == r then
+            Yields[row.YieldType] = row.YieldChange
+        end
+    end
+    return Yields
+end
+```
+结构上非常相似，其实就是从数据库获取信息，比如`Features[row.FeatureType] = true`的作用就是记录该地貌是可用的，并且键名为TYPE的字符串。
+`SiqiResource:GetYields`获取的是资源的产出。
+
+然后我们还需要判断这个资源是否可见，不过由于资源可见性不是一成不变的，因此我们不能记录为基本信息，只能写成方法：
+并不复杂
+```lua
+function SiqiResource:CanSee(playerID)
+    local resourceData = Players[playerID]:GetResources()
+    if not resourceData:IsResourceVisible(self.Hash) then return false; end
+    return true 
+end
+```
+
+下面，就需要判断是否能在指定单元格生成资源。
+思路不算复杂：
+1. 判断是否有资源，如果有，是否可见，如果可见就自直接返回false，也就是不能放。不可见也不一定能放，所有继续往下。
+2. 判断是否有改良，很好判断，如果改良能在这个资源上面建就直接建，无需考虑其他。
+3. 判断是否有地貌，类似改良，也是有就能建
+4. 最后的地形不需要判断存在性了，直接看看有没有就得了。
+
+这里也可以看出来，文明6的建造条件基本上都是或的关系。也就是只要满足一个，就都满足了。
+
+```lua
+function SiqiResource:CanPlaceHere(playerID, pPlot)
+    if pPlot:GetResourceType() ~= -1 then 
+        local Res = SiqiResource:new(pPlot:GetResourceType())
+        if Res:CanSee(playerID) then return false; end
+    end
+    if pPlot:GetImprovementType() ~= -1 then
+        local ImprovementType = GameInfo.Improvements[pPlot:GetImprovementType()].ImprovementType or -1
+        local CanPlace = self.Improvements[ImprovementType]
+        return CanPlace
+    end
+    if pPlot:GetFeatureType() ~= -1 then
+        local FeatureType = GameInfo.Features[pPlot:GetFeatureType()].FeatureType or -1
+        local CanPlace = self.ValidFeatures[FeatureType]
+        return CanPlace
+    end
+    local terrainType = GameInfo.Terrains[pPlot:GetTerrainType()].TerrainType or -1
+    local CanPlace = self.ValidTerrains[terrainType] or false
+    return CanPlace
+end
+```
+到了这里，一个资源的基本信息就写完了。当然还有一个关于文本的函数
+
+
 #### 1.2 一些功能性函数
 
 这里主要是给出一些辅助函数，附带简单的解释。
@@ -576,6 +700,8 @@ end
 ```
 
 ##### 1.2.2 字符串
+
+字符串看似不起眼的小功能，写起来还是很麻烦的。
 
 ```lua
 -- 获得产出的字符串 示例：[ICON_Food]食物
@@ -1105,7 +1231,6 @@ end
 **宜居度转科技产出**
 
 文件夹里看到。
-
 
 #### 1.4 UI界面设计
 
