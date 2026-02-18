@@ -2109,3 +2109,441 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
 下一节我们会在UI界面上创建按钮，并实现一些简单的功能。
 
 ##### 1.4.3 设计按钮功能
+
+本节我们将尝试在UI界面上创建按钮，并实现一些简单功能。对于静态的按钮，前面的教程：《单位按钮》这部分已经很详细了，这里就不再过多介绍，本节我们将创建动态按钮，并实现一些简单功能。
+假如我们现在想要在UI界面统计场上所有玩家的城市：为每一个玩家创建一个按钮，点击按钮后就会显示该玩家对应的所有城市。由于场上的玩家的城市是动态变化的，比如某个回合玩家建立了一座城市或者被占领一座城市，那么该玩家的城市数据就会发生变化；同理；场上的玩家也是动态变化的，比如玩家被消灭或被打败等等……所以，我们需要实时更新玩家数据。
+
+为了让各位更好的理解该mod的内容，我们新写一个UI面板，面板大小相比前面的教程略微有所调整；假设我们要设计的面板如下：
+
+> ![alt text](img/image6.jpg)
+
+通过观察不难发现，我们在这个面板的左边展示了场上所有玩家的文明图标和领袖图标，点击对应的领袖图标按钮后会在右边显示其所有的城市，每个城市都创建了一个实例（为了方便后续对城市进行操作）。在前面的教程中我们提到，`InstanceManager:new()`: 这个函数是调用`InstanceManager`类的构造函数，专门用于创建我们在xml里面写好的UI实例。显然我们需要遍历场上的所有玩家，然后针对每一个玩家遍历其所有的城市；那么我们的按钮在每次遍历场上玩家的时候都会生成一次，有几个玩家就会生成几个按钮；最后再给每一个按钮赋予功能：展示该玩家的所有城市。
+
+以上是我们这个UI界面设计的大致思路；接下来我们具体分析代码的实现过程。
+首先是xml部分；和以前一样，我们先搭好一个框架，和第1.4.1节一样，我们写下如下代码（注意主容器大小略微有所调整）：
+
+```xml
+<Context>
+    <Container ID="MainContainer" Anchor="C,C" Size="1400,780" Offset="0,0">
+        <Image ID="ModalBG" Size="parent,parent" Texture="Religion_BG" StretchMode="Tile" ConsumeMouse="1"/>  
+        <Grid Size="parent,40" Texture="Controls_SubHeader2" ConsumeMouse="1" SliceCorner="20,2" SliceTextureSize="40,40">
+          <Label ID="ScreenTitle" String="LOC_KIANA_WINDOW_TITLE" Anchor="C,C" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
+        </Grid>
+        <Grid Offset="-8,-8" Size="parent+16,parent+16" Style="ScreenFrame"/>
+        <Button ID="CloseButton" Anchor="R,T" Size="44,44" Texture="Controls_CloseLarge"/>
+        <Tab ID="TabControl" Anchor="L,T" Size="parent-40, 720" Offset="0,40">  
+            <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
+            <Grid ID="FirstPage" Size="parent,parent-80" Offset="20,60" Texture="Religion_OverviewFrame" SliceCorner="15,15">  
+            </Grid>
+            </Container>
+            <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
+                <GridButton ID="SelectTab_FirstPage" Style="TabButton" Size="125,35">
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>                 
+                </GridButton>
+            </Stack>
+        </Tab>
+    </Container>
+```
+
+之后，我们写下在界面FirstPage下的代码，通过观察上面的面板不难发现，我们有两个Grid控件，其中一个在左边，用来显示所有玩家对应的文明图标和领袖图标；另一个在右边，用来显示每个领袖所有的城市，对于控件的边框样式，我们依然采用父控件的边框样式，即：使用一个名为`Religion_OverviewFrame`的纹理作为这个内容面板的背景；且背景板的圆角为15x15像素:
+
+```xml
+        <Grid ID="loadplayer" Size="165,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
+        </Grid>
+        <Grid ID="loadcity" Size="parent-170,parent" Offset="170,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
+        </Grid>
+```
+
+之后我们注意到在左边的Grid控件里面，首先左上角有“文明”文本，右上角有“领袖”文本，然后下面有一个堆叠容器，用于盛放所有文明和领袖的图标，文明图标和“文明”文本对齐，领袖图标和“领袖”文本对齐；除此之外当场上玩家过多时，为了防止图标溢出，我们还要写一个滚动面板。
+
+其中，“文明”文本和“领袖”文本的代码如下（写在Grid ID="loadplayer"的控件里面）：
+
+```xml
+        <Grid ID="loadplayer" Size="165,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
+                <Label ID="Loadciv" String="LOC_CIV" Anchor="L,T" Offset="25,25" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
+                <Label ID="Loadleader" String="LOC_LEADER" Anchor="R,T" Offset="25,25" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
+        </Grid>
+```
+然后还有一个堆叠容器，根据前面的教程，其类型应该是Stack；该Stack容器里面包涵一个滚动面板ScrollPanel，ScrollPanel里面还要有一个Stack，堆叠方式`StackGrowth`应该填`Down`（自上而下依次堆叠），我们所有的文明和领袖图标都要放在这个Stack里面；除此之外还要有一个滚动条。我们的代码看起来像这样：
+
+```xml
+        <Grid ID="loadplayer" Size="165,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
+            <Label ID="Loadciv" String="LOC_CIV" Anchor="L,T" Offset="25,25" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
+            <Label ID="Loadleader" String="LOC_LEADER" Anchor="R,T" Offset="25,25" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
+            <Stack StackGrowth ="Down" Anchor="L,T" Size="150,parent-40" Offset="0,50">
+                <ScrollPanel ID="InfoScrollPanel" Vertical="1" Size="150,parent-20" AutoScrollBar="1" Anchor="L,T" Offset="4,8">
+                    <Stack ID="AllPlayerStack" StackGrowth="Down" Padding="2"  Anchor="C,T" />
+                    <ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />
+                </ScrollPanel>
+            </Stack>
+        </Grid>
+```
+
+其中，我们在ScrollPanel里面定义了AutoScrollBar="1"，意味着当里面的内容溢出时，会自动显示滚动条，所以下面的`<ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />`不写也是可以的，但是这里保险起见写上了。然后再写显示每一个领袖所有城市的控件，代码如下：
+
+```xml
+        <Grid ID="loadcity" Size="parent-170,parent" Offset="170,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
+            <Label ID="Loadcity" String="LOC_THIS_PLAYER_ALL_CITIES" Anchor="C,T" Offset="0,25" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
+            <Stack  StackGrowth ="Down" Anchor="L,T" Size="parent-170,parent-20" Offset="75,50">  
+                <Label ID="NotBuildCity" String="LOC_DO_NOT_BUILD_CITY" Style="FontFlair20" Offset="20,20" Anchor="L,T" WrapWidth="1100" FontStyle="glow" ColorSet="ShellHeader" Hidden="1"/>
+                <ScrollPanel ID="InfoScrollPanel" Vertical="1" Size="parent,parent-20" AutoScrollBar="1" Anchor="L,T" Offset="4,8">
+                    <Stack ID="AllCityStack" StackGrowth="Down" Padding="2"  Anchor="C,T" />
+                    <ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />
+                </ScrollPanel>
+            </Stack>
+        </Grid>
+```
+
+其中`Label ID="Loadcity"`是UI界面上“该玩家的所有城市”文本，String="LOC_THIS_PLAYER_ALL_CITIES"是其对应的具体内容（需要在text.xml里面定义），`Label ID="NotBuildCity"`是指当这个玩家还没有建立城市的时候显示的文本，默认隐藏，具体内容为String="LOC_DO_NOT_BUILD_CITY"：该领袖还未建立任何城市。其他的内容与左边的控件写法差不多。
+
+我们的主体部分大致如下：
+
+```xml
+    <Container ID="MainContainer" Anchor="C,C" Size="1400,780" Offset="0,0">
+        <Image ID="ErosionBG" Size="parent,parent" Texture="Religion_BG" StretchMode="Tile" ConsumeMouse="1"/>  
+        <Grid Size="parent,40" Texture="Controls_SubHeader2" ConsumeMouse="1" SliceCorner="20,2" SliceTextureSize="40,40">
+          <Label ID="ScreenTitle" String="LOC_KIANA_WINDOW_TITLE" Anchor="C,C" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
+        </Grid>
+        <Grid Offset="-8,-8" Size="parent+16,parent+16" Style="ScreenFrame"/>
+        <Button ID="CloseButton" Anchor="R,T" Size="44,44" Texture="Controls_CloseLarge"/>
+        <Tab ID="TabControl" Anchor="L,T" Size="parent-40, 720" Offset="0,40">  
+            <Container ID="TabContainer" Size="parent,parent" Offset="0,0">
+            <Grid ID="EROSIONTab1" Size="parent,parent-80" Offset="20,60" Texture="Religion_OverviewFrame" SliceCorner="15,15">  
+                <Grid ID="loadplayer" Size="165,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
+                    <Label ID="Loadciv" String="LOC_CIV" Anchor="L,T" Offset="25,25" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
+                    <Label ID="Loadleader" String="LOC_LEADER" Anchor="R,T" Offset="25,25" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
+                    <Stack StackGrowth ="Down" Anchor="L,T" Size="150,parent-40" Offset="0,50">
+                        <ScrollPanel ID="InfoScrollPanel" Vertical="1" Size="150,parent-20" AutoScrollBar="1" Anchor="L,T" Offset="4,8">
+                            <Stack ID="AllPlayerStack" StackGrowth="Down" Padding="2"  Anchor="C,T" />
+                            <ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />
+                        </ScrollPanel>
+                    </Stack>
+                </Grid>
+                <Grid ID="loadcity" Size="parent-170,parent" Offset="170,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
+                    <Label ID="Loadcity" String="LOC_THIS_PLAYER_ALL_CITIES" Anchor="C,T" Offset="0,25" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
+                    <Stack  StackGrowth ="Down" Anchor="L,T" Size="parent-170,parent-20" Offset="75,50">  <!--一种容器，用于存放所有按钮对应的界面-->
+                        <Label ID="NotBuildCity" String="LOC_DO_NOT_BUILD_CITY" Style="FontFlair20" Offset="20,20" Anchor="L,T" WrapWidth="1100" FontStyle="glow" ColorSet="ShellHeader" Hidden="1"/>
+                        <ScrollPanel ID="InfoScrollPanel" Vertical="1" Size="parent,parent-20" AutoScrollBar="1" Anchor="L,T" Offset="4,8">
+                            <Stack ID="AllCityStack" StackGrowth="Down" Padding="2"  Anchor="C,T" />
+                            <ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />
+                        </ScrollPanel>
+                    </Stack>
+                </Grid>
+            </Grid>
+            </Container>
+            <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
+                <GridButton ID="SelectTab_EROSIONTab1" Style="TabButton" Size="125,35">
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>                 
+                </GridButton>
+            </Stack>
+        </Tab>
+    </Container>
+```
+
+之后是Instance部分，首先我们先写玩家的部分，对于每一个玩家，我们都要生成其对应的文明图标和领袖图标，由于我们点击对应领袖的图标就会显示该领袖（该玩家）的所有城市，所以该图标应该放在一个按钮里面，然后文明图标和领袖图标也要放在一个Grid控件里面，对于控件的边框样式，我们依然采用一个名为`Religion_OverviewFrame`的纹理作为这个控件的背景。具体代码如下：
+
+```xml
+    <Instance Name="SelectPlayer">
+        <Container ID="Players" Size="150,70" >
+        <Grid ID="player" Size="parent,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
+            <Button ID="AnyCivSelect" Texture="LaunchBar_Hook_GreatWorksButton" Style="ButtonNormalText" TextureOffset="0,2" StateOffsetIncrement="0,50" Size="50,50" Anchor="L,C" Offset="10,0">
+                <Image ID="LaunchCiv" Size="49,49" Anchor="C,C" Offset="0,0"/>
+            </Button>
+            <Button ID="AnyPlayerSelect" Texture="LaunchBar_Hook_GreatWorksButton" Style="ButtonNormalText" TextureOffset="0,2" StateOffsetIncrement="0,50" Size="50,50" Anchor="R,C" Offset="10,0">
+                <Image ID="LaunchPlayer" Size="49,49" Anchor="C,C" Offset="0,0"/>
+            </Button> 
+        </Grid>       
+        </Container>
+	</Instance>
+```
+
+然后是玩家城市部分，内容与上面的差不多，也是每一个城市对应一个Grid控件，左边有市中心的图标，图标的右边是该城市具体名字。对于图标和城市名字，我们可以写在一个Stack控件里面，堆叠方式为StackGrowth="Right"，自左向右依次堆叠；为了让城市名字与图标之间有一定的间距，我们可以设置Stack控件里面子元素之间的间距，`StackPadding="20"`代表子元素之间间距为20像素。代码如下：
+
+```xml
+    <Instance Name="SelectCity">
+        <Container ID="Cities" Size="1100,65">
+        <Grid ID="city" Size="parent,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15">
+            <Stack StackGrowth="Right" Anchor="L,C" Size="250,50"  StackPadding="20">                
+			    <Image ID="CityPicture" Size="50,50" Offset="5,0" Anchor="L,C"/>  
+                    <Label ID="CityForName" Style="FontFlair16" Anchor="L,C" Color0="208,212,217,255" Color1="0,0,0,50"/>
+            </Stack>      
+        </Grid>
+        </Container>
+    </Instance>
+```
+
+最后我们再写上启动栏按钮，与第1.4.1节一致，代码如下：
+
+```xml
+    <Instance Name="LaunchKianaItem">
+        <Button ID="LaunchKianaItemButton" Anchor="L,C" Size="49,49" Texture="LaunchBar_Hook_GreatWorksButton" Style="ButtonNormalText" TextureOffset="0,2" StateOffsetIncrement="0,49" ToolTip="LOC_KIANA_ENTRY_BUTTON_TOOLTIP">
+            <Image ID="LaunchItemIcon" Texture="KianaEntryIcon.dds" Size="35,35" Anchor="C,C" Offset="0,-1" Hidden="0"/>
+            <Label ID="IconAlter" String="[ICON_CapitalLarge]" Anchor="C,C" Offset="0,0" Hidden="1"/>   
+        </Button>
+    </Instance>
+
+    <Instance Name="LaunchKianaPinInstance">
+        <Image ID="KianaPin" Anchor="L,C" Offset="0,-2" Size="7,7" Texture="LaunchBar_TrackPip" Color="255,255,255,200"/>
+    </Instance> 
+```
+
+至此xml部分就结束了，接下来是lua部分。
+
+前三行代码依旧不变：
+
+```lua
+include("InstanceManager")
+
+local m_LaunchItemInstanceManager = InstanceManager:new("LaunchKianaItem", "LaunchKianaItemButton")
+local m_LaunchBarPinInstanceManager = InstanceManager:new("LaunchKianaPinInstance", "KianaPin")
+```
+
+之后我们要写上文明和领袖图标的实例管理器，以及玩家所有城市的实例管理器，具体如下：
+
+```lua
+include("InstanceManager")
+
+local m_LaunchItemInstancePlayerManager = InstanceManager:new("SelectPlayer", "Players", Controls.AllPlayerStack)
+local m_LaunchItemInstanceCityManager = InstanceManager:new("SelectCity", "Cities", Controls.AllCityStack)
+```
+
+其中`Controls.AllPlayerStack`和`Controls.AllCityStack`分别是xml里面在滚动面板里面定义的<Stack>控件的ID。
+
+之后就是挂载我们的按钮，定义一些常量以及按钮可见性的判断，这里与第1.4.1节差不多，代码如下：
+
+```lua
+local m_iCurrentPlayerID = Game.GetLocalPlayer() -- 当前玩家ID
+local m_pCurrentPlayer = Players[m_iCurrentPlayerID]  -- 当前玩家对象
+local ELEANOR_FRANCE = "LEADER_ELEANOR_FRANCE"  --阿基坦的埃莉诺（法国）
+
+
+function Kiana_IsPlayerLeader(playerID, leaderType)
+    local pPlayerConfig = PlayerConfigurations[playerID]
+    if pPlayerConfig == nil then return false; end
+    if pPlayerConfig:GetLeaderTypeName() == leaderType then
+        return true
+    else
+        return false
+    end
+end
+
+function Kiana_ButtonIsHide()
+    if not Kiana_IsPlayerLeader(m_iCurrentPlayerID, ELEANOR_FRANCE) then
+        EntryButtonInstance.LaunchKianaItemButton:SetHide(true);
+    else
+        EntryButtonInstance.LaunchKianaItemButton:SetHide(false);
+    end
+end
+
+--============================================================================================================--
+function SetupLaunchBarButtonKiana()  
+    local ctrl = ContextPtr:LookUpControl("/InGame/LaunchBar/ButtonStack")
+    if ctrl == nil then-- 兼容性检查
+        return
+    end
+    
+    if EntryButtonInstance == nil then  -
+        EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)    -- 创建按钮实例并挂载到游戏UI
+        LaunchBarPinInstance = m_LaunchBarPinInstanceManager:GetInstance(ctrl)
+        Kiana_ButtonIsHide()
+        EntryButtonInstance.LaunchKianaItemButton:RegisterCallback(Mouse.eLClick,    -- 绑定点击事件：打开窗口
+        function()
+            ShowKianaWindow()
+        end)
+    else
+    print("ERROR: ButtonStack not found!")
+    end
+end
+
+function HideKianaWindow() --- 关闭贷款界面
+    if not ContextPtr:IsHidden() then   -- 检查窗口是否已显示
+        ContextPtr:SetHide(true) -- 隐藏窗口
+        UI.PlaySound("UI_Screen_Close") -- 播放关闭音效
+    end
+end
+
+function ShowKianaWindow() -- 打开界面
+    ContextPtr:SetHide(false)  -- 显示窗口
+    RefreshAllPlayers()
+    UI.PlaySound("UI_Screen_Open") -- 播放打开音效
+end
+
+function KianaInputHandler(uiMsg, wParam, lParam)  --输入处理
+    if (uiMsg == KeyEvents.KeyUp) then-- 检测按键事件
+        if (wParam == Keys.VK_ESCAPE) then-- 如果是ESC键
+            if Controls.MainContainer:IsVisible() then
+                HideKianaWindow() -- 关闭窗口
+                return true   -- 阻止事件继续传递
+            end
+        end
+    end
+    
+    return false -- 其他按键不拦截
+end
+
+function KianaInitHandler(isReload)  --初始化逻辑 InitHandler()
+    SetupLaunchBarButtonKiana()   -- 初始化游戏主界面的入口按钮
+    ShowKianaWindow()-- 直接打开窗口
+end
+
+function KianaShutdownHandler()  --- 关闭时资源清理
+        -- 1. 释放主界面入口按钮实例（避免内存泄漏）
+    if EntryButtonInstance ~= nil then
+        m_LaunchItemInstanceManager:ReleaseInstance(EntryButtonInstance)
+    end
+        -- 2. 释放入口按钮的装饰标记实例
+    if LaunchBarPinInstance ~= nil then
+        m_LaunchBarPinInstanceManager:ReleaseInstance(LaunchBarPinInstance)
+    end
+end
+
+function Initialize()
+    SetupLaunchBarButtonKiana()
+    ContextPtr:SetInputHandler(KianaInputHandler)  -- 设置全局输入监听
+    ContextPtr:SetInitHandler(KianaInitHandler) -- 设置界面初始化回调
+    ContextPtr:SetShutdown(KianaShutdownHandler)  -- 设置界面关闭回调
+    Controls.CloseButton:RegisterCallback(Mouse.eLClick, HideKianaWindow)  -- 关闭按钮
+    LuaEvents.DiplomacyActionView_HideIngameUI.Add(HideKianaWindow)
+    LuaEvents.EndGameMenu_Shown.Add(HideKianaWindow)
+    LuaEvents.FullscreenMap_Shown.Add(HideKianaWindow)
+    LuaEvents.NaturalWonderPopup_Shown.Add(HideKianaWindow)
+    LuaEvents.ProjectBuiltPopup_Shown.Add(HideKianaWindow)
+    LuaEvents.Tutorial_ToggleInGameOptionsMenu.Add(HideKianaWindow)
+    LuaEvents.WonderBuiltPopup_Shown.Add(HideKianaWindow)
+    LuaEvents.NaturalDisasterPopup_Shown.Add(HideKianaWindow) 
+    LuaEvents.RockBandMoviePopup_Shown.Add(HideKianaWindow)
+end
+Events.LoadGameViewStateDone.Add(Initialize)
+```
+
+接下来是最关键的部分：如何获取场上所有玩家和城市。首先，我们先获取场上所有玩家对应的文明和领袖名字以及图标：
+
+```lua
+function SelectKianaPlayers()  --获取场上所有玩家，并储存
+    local pAllPlayerIDs = PlayerManager.GetAliveMajors();  --获取场上所有存活的主流文明玩家
+    local AllPlayers = {};  -- 初始化一个空表，用于存放最终筛选和处理后的玩家数据
+    for k1, pPlayer in ipairs(pAllPlayerIDs) do  --遍历每一个玩家
+        local pPlayerID = pPlayer:GetID();  --获取该玩家的ID
+        local pPlayerConfig = PlayerConfigurations[pPlayerID];  --获取该玩家信息
+		local CivilizationTypeName = pPlayerConfig:GetCivilizationTypeName()   --获取文明变量名
+        local civName = Locale.Lookup(GameInfo.Civilizations[CivilizationTypeName].Name); --确定文明名字（中文）	
+		local civIcon = "ICON_"..CivilizationTypeName;  --确定文明图标(字符串)
+        local LeaderTypeName = pPlayerConfig:GetLeaderTypeName()    --获取领袖变量名
+		local leaderName;
+        local leadericon = "ICON_"..LeaderTypeName;  --确定领袖图标（字符串）
+		if pPlayer:IsHuman() then  --如果玩家是人类
+			local playerName = Locale.Lookup(pPlayerConfig:GetPlayerName());  --确定玩家的领袖名字（中文）	
+			leaderName = Locale.Lookup(GameInfo.Leaders[LeaderTypeName].Name) .. " ("..Locale.Lookup(playerName)..")"  --确实最终的领袖名字（中文）	
+		else
+			leaderName = Locale.Lookup(GameInfo.Leaders[LeaderTypeName].Name);
+		end
+        local playerTable :table = {   --将上面的信息储存在一个临时表里，后面可直接调用函数获取这个表
+            cName = civName,  --文明名字
+            cIcon = civIcon,  --文明图标
+            lName = leaderName,  --领袖名字
+            lIcon = leadericon,   --领袖图标
+			playerID = pPlayerID,  --玩家ID
+        };
+        if playerTable.lName ~= '' then
+            table.insert(AllPlayers, playerTable)  --将其中一个玩家的信息playerTable插入到表AllPlayers表中
+        end
+    end
+    return AllPlayers  --返回AllPlayers表
+end
+```
+
+然后获取每一个玩家的城市，这里需要传递玩家的ID：
+
+```lua
+function GetPlayerAllCities(pPlayerID)  --获取玩家所有城市，并储存
+	local pPlayer = Players[pPlayerID];  --根据ID获取玩家
+    local playerCities = pPlayer:GetCities()  --获取玩家的城市，playerCities是一个玩家城市的表
+	local AllPlayerCities = {}; -- 初始化一个空表，用于存放最终筛选和处理后的城市数据
+	if(playerCities ~= nil) then
+    	for i, city in playerCities:Members() do  --遍历玩家每一个城市
+			local CityID = city:GetID();  --获取该城市的ID
+			local CityName = Locale.Lookup(city:GetName());  --获取该城市的中文名字
+			local CityIcon = "ICON_DISTRICT_CITY_CENTER"  --获取市中心图标
+            local CityTable:table = {  --将上面的信息储存在一个临时表里，后面可直接调用函数获取这个表
+                playerid = pPlayerID,  --玩家ID
+				cityid = CityID,       --城市ID
+                cityName = CityName,   --城市中文名字
+                cityIcon = CityIcon,   --市中心图标
+            };
+            if CityName ~= '' then
+                table.insert(AllPlayerCities, CityTable) --将其中一个城市的信息CityTable插入到表AllPlayerCities表中
+            end
+        end
+    end
+    return AllPlayerCities --返回AllPlayerCities表
+end
+```
+
+好了，上面所有的玩家信息都已经获取了，接下来就是如何把这些信息显示在我们的UI界面上。首先，我们打开界面，就要刷新场上所有的玩家对应的文明以及领袖信息，所以我们要在`ShowKianaWindow()`函数里面加上一个刷新所有玩家信息的函数：`RefreshAllPlayers()`:
+
+```lua
+function ShowKianaWindow() -- 打开界面
+    ContextPtr:SetHide(false)  -- 显示窗口
+    RefreshAllPlayers() --刷新所有玩家信息
+    UI.PlaySound("UI_Screen_Open") -- 播放打开音效
+end
+```
+
+然后我们写上`RefreshAllPlayers()`这个函数的具体逻辑：
+
+```lua
+function RefreshAllPlayers()--刷新所有玩家信息
+    -- 所有领袖信息
+    local AllPlayers = SelectKianaPlayers()  -- 获取当前游戏中所有的玩家
+    if not AllPlayers then return; end
+    m_LaunchItemInstancePlayerManager:DestroyInstances()  -- 销毁 该管理器当前所控制和维护的所有UI实例。
+    m_LaunchItemInstancePlayerManager:ResetInstances()  --重置 管理器的内部状态。它会将内部计数器归零，并“忘记”之前创建的所有实例
+    if #AllPlayers > 0 then -- 如果场上有玩家（其实这一步可以不用写，因为一局游戏肯定会有玩家的）
+        for i, pPlayer in ipairs(AllPlayers) do  
+            local instance = m_LaunchItemInstancePlayerManager:GetInstance()  -- 为每个玩家创建一个新的UI实例（列表项）
+            instance.LaunchCiv:SetIcon(pPlayer.cIcon)  -- 显示文明图标
+            instance.LaunchPlayer:SetIcon(pPlayer.lIcon)  -- 显示领袖图标
+            instance.AnyCivSelect:SetToolTipString(GetKianaCivTooltipText(pPlayer))-- 设置文明提示文本
+            instance.AnyPlayerSelect:RegisterCallback(Mouse.eLClick, function() RefreshPlayerAllCities(pPlayer.playerID) end) -- 注册点击事件：点击后调用RefreshPlayerAllCities()，刷新玩家城市（注意这里要传递玩家ID）
+            instance.AnyPlayerSelect:SetToolTipString(GetKianaPlayerTooltipText(pPlayer))-- 设置领袖提示文本
+        end
+    else
+    end
+end
+```
+
+然后写上`RefreshPlayerAllCities`这个函数的逻辑，刷新玩家城市：
+
+```lua
+function RefreshPlayerAllCities(playerID)  --根据传递的玩家ID来获取玩家的城市
+    -- 所有城市信息
+    local AllCities = GetPlayerAllCities(playerID)  -- 根据玩家ID，获取当前玩家所有的城市
+    if not AllCities then return; end
+    m_LaunchItemInstanceCityManager:DestroyInstances()  -- 销毁 该管理器当前所控制和维护的所有UI实例。
+    m_LaunchItemInstanceCityManager:ResetInstances()  --重置 管理器的内部状态。它会将内部计数器归零，并“忘记”之前创建的所有实例
+    if #AllCities > 0 then -- 如果玩家有城市
+        Controls.NotBuildCity:SetHide(true)  --将文本["LOC_DO_NOT_BUILD_CITY"：该领袖还未建立任何城市。]隐藏起来
+        for i, pCity in ipairs(AllCities) do  --遍历玩家每一个城市
+            local instance = m_LaunchItemInstanceCityManager:GetInstance()  -- 为每个城市创建一个新的UI实例（列表项）
+            instance.CityPicture:SetIcon(pCity.cityIcon)  -- 显示城市图标
+            instance.CityForName:SetText(pCity.cityName)  -- 显示城市名字
+        end
+    else
+        Controls.NotBuildCity:SetHide(false)  --如果该玩家没有建立城市，则显示文本：["LOC_DO_NOT_BUILD_CITY"：该领袖还未建立任何城市。]
+    end
+end
+```
+
+最后补充上我们在`RefreshAllPlayers()`函数中写的提示文本：`instance.AnyCivSelect:SetToolTipString(GetKianaCivTooltipText(pPlayer))`和`instance.AnyPlayerSelect:SetToolTipString(GetKianaPlayerTooltipText(pPlayer))`：
+
+```lua
+function GetKianaCivTooltipText(CivilizationTypeName)  -- 提示文本
+    return Locale.Lookup(CivilizationTypeName.cName);
+end
+
+function GetKianaPlayerTooltipText(LeaderTypeName)  -- 提示文本
+    return Locale.Lookup(LeaderTypeName.lName);
+end
+```
+
+好啦！至此我们的mod就全部写完了。这个mod可以实时查看所有玩家的城市信息；但是目前我们获取的信息较少，仅有城市的名字。下一节我们将会获取更加详细的信息：获取每个城市的全产出，以及为每个城市添加一个按钮，实现一些功能。
