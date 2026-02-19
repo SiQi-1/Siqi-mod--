@@ -511,6 +511,7 @@ end
 ##### 1.1.2 单位按钮：种植奢侈品
 
 能移除奢侈品自然也要能种植奢侈品，传统的方法是通过虚拟改良的方式来种植，或者种植与养殖mod这样写一个UI面板来种植，但是这里我要给出的方案是来自HSbF6HSO3F大佬开发的UI，是使用改良面板修改而来的。
+**可以订阅HSbF6HSO3F大佬的[白鹰联邦·领袖扩展1 mod](https://steamcommunity.com/sharedfiles/filedetails/?id=3091608915)喵**
 
 不过种植奢侈品通常也不会免费种植，可能需要结合许多其他机制，这里我就不搞这么多机制了，直接100金币种一次，如果你想用更符合实际的机制，也可以改。
 
@@ -537,7 +538,7 @@ function SiqiResource:new(RecourceType)
     t.ValidFeatures = SiqiResource:GetValidFeatures(info.ResourceType) -- 可用地貌
     t.ValidTerrains = SiqiResource:GetValidTerrains(info.ResourceType) -- 可用地形
     t.Improvements = SiqiResource:GetImprovements(info.ResourceType) -- 可用改良
-    t.Yields = SiqiResource:GetYields(info.ResourceType)
+    t.Yields = SiqiResource:GetYields(info.ResourceType) -- 资源产出
     return t
 end
 ```
@@ -545,6 +546,7 @@ end
 其中的 `setmetatable(t, self)     self.__index = self` 是固定句式，下面的就是基本信息了。
 
 这些信息根据名字就能知道其具体内容了，现在讲讲出现的4个函数
+
 ```lua
 function SiqiResource:GetValidFeatures(r)
     local Features = {}
@@ -586,11 +588,13 @@ function SiqiResource:GetYields(r)
     return Yields
 end
 ```
-结构上非常相似，其实就是从数据库获取信息，比如`Features[row.FeatureType] = true`的作用就是记录该地貌是可用的，并且键名为TYPE的字符串。
+
+结构上非常相似，其实就是从数据库获取信息，比如 `Features[row.FeatureType] = true`的作用就是记录该地貌是可用的，并且键名为TYPE的字符串。
 `SiqiResource:GetYields`获取的是资源的产出。
 
 然后我们还需要判断这个资源是否可见，不过由于资源可见性不是一成不变的，因此我们不能记录为基本信息，只能写成方法：
 并不复杂
+
 ```lua
 function SiqiResource:CanSee(playerID)
     local resourceData = Players[playerID]:GetResources()
@@ -601,6 +605,7 @@ end
 
 下面，就需要判断是否能在指定单元格生成资源。
 思路不算复杂：
+
 1. 判断是否有资源，如果有，是否可见，如果可见就自直接返回false，也就是不能放。不可见也不一定能放，所有继续往下。
 2. 判断是否有改良，很好判断，如果改良能在这个资源上面建就直接建，无需考虑其他。
 3. 判断是否有地貌，类似改良，也是有就能建
@@ -610,9 +615,9 @@ end
 
 ```lua
 function SiqiResource:CanPlaceHere(playerID, pPlot)
-    if pPlot:GetResourceType() ~= -1 then 
-        local Res = SiqiResource:new(pPlot:GetResourceType())
-        if Res:CanSee(playerID) then return false; end
+    if pPlot:GetResourceType() ~= -1 then  -- 如果地块有资源
+        local Res = SiqiResource:new(pPlot:GetResourceType()) -- 获得该地块的资源对象
+        if Res:CanSee(playerID) then return false; end -- 如果这个资源看不见，那就可以种资源，符合直觉。
     end
     if pPlot:GetImprovementType() ~= -1 then
         local ImprovementType = GameInfo.Improvements[pPlot:GetImprovementType()].ImprovementType or -1
@@ -629,8 +634,321 @@ function SiqiResource:CanPlaceHere(playerID, pPlot)
     return CanPlace
 end
 ```
-到了这里，一个资源的基本信息就写完了。当然还有一个关于文本的函数
 
+到了这里，一个资源的基本信息就写完了。当然还有一个关于文本的函数：
+
+```lua
+function SiqiResource:GetChangeYieldsTooltip()
+    local tooltip = Locale.Lookup('LOC_SIQITEACH_RESOURCE_CHANGE')
+    local outTip = ''
+    for key, val in pairs(self.Yields) do
+        local tip = 'LOC_SIQITEACH_RESOURCE_' .. key
+        outTip = outTip .. Locale.Lookup(tip, val)
+    end
+    if outTip == '' then
+        outTip = Locale.Lookup('LOC_SIQITEACH_RESOURCE_NOCHANGE')
+    end
+    return tooltip .. outTip
+end
+```
+
+这个函数用于获得资源给予的产出。
+
+其中的文本如下：
+
+```sql
+INSERT INTO LocalizedText (Language, Tag, Text) VALUES
+('zh_Hans_CN', 'LOC_SIQITEACH_RESOURCE_CHANGE',             '产出增加：'),
+('zh_Hans_CN', 'LOC_SIQITEACH_RESOURCE_NOCHANGE',           '[NEWLINE]无变化'),
+('zh_Hans_CN', 'LOC_SIQITEACH_RESOURCE_YIELD_SCIENCE',      '[NEWLINE]+{1_amount} [ICON_SCIENCE] 科技值'),
+('zh_Hans_CN', 'LOC_SIQITEACH_RESOURCE_YIELD_CULTURE',      '[NEWLINE]+{1_amount} [ICON_CULTURE] 文化值'),
+('zh_Hans_CN', 'LOC_SIQITEACH_RESOURCE_YIELD_GOLD',         '[NEWLINE]+{1_amount} [ICON_GOLD] 金币'),
+('zh_Hans_CN', 'LOC_SIQITEACH_RESOURCE_YIELD_FAITH',        '[NEWLINE]+{1_amount} [ICON_FAITH] 信仰值'),
+('zh_Hans_CN', 'LOC_SIQITEACH_RESOURCE_YIELD_FOOD',         '[NEWLINE]+{1_amount} [ICON_FOOD] 食物'),
+('zh_Hans_CN', 'LOC_SIQITEACH_RESOURCE_YIELD_PRODUCTION',   '[NEWLINE]+{1_amount} [ICON_PRODUCTION] 生产力');
+```
+
+现在，我们总结一下，想要种植一个资源，需要的东西：
+资源对象：SiqiResource:new(RecourceType)
+基础信息（名字，图标）：SiqiResource.Name和SiqiResource.IconString
+能不能种：SiqiResource:CanPlaceHere(playerID, pPlot)
+给多少产出：SiqiResource:GetChangeYieldsTooltip()
+
+然后我们写一个获取详细信息的函数
+
+```lua
+-- 首先预先写一个存储着奢侈品的资源对象表
+local Resources = {}
+-- 通过遍历判断并且加入到表
+for row in GameInfo.Resources() do
+    if row.Frequency ~= 0 or row.SeaFrequency ~= 0 then -- 需要能在地图上出现
+        if  row.ResourceClassType == 'RESOURCECLASS_LUXURY' then -- 需要是奢侈品
+            local Res = SiqiResource:new(row.ResourceType) -- 获取资源对象
+            Resources[row.ResourceType] = Res -- 加入资源对象到表中
+        end
+    end
+end
+
+function GetDetail() -- 仅限UI
+    local pUnit = UI.GetHeadSelectedUnit()
+    local pPlot = Map.GetPlot(pUnit:GetX(), pUnit:GetY())
+    local playerID = Game.GetLocalPlayer()
+    local detail = {}
+    for _, resource in pairs(Resources) do
+        -- 如果资源可以放置在这个地块，并且可以看的见这个资源（战略资源需要，不过这里是奢侈品，倒是没必要）
+        if resource:CanPlaceHere(playerID, pPlot) and resource:CanSee(playerID)then
+            table.insert(detail, resource)
+        end
+    end;
+    return detail
+end
+```
+
+
+
+###### **2、XML定义**
+
+数据层面的内容就做完了，现在我们开始写UI面板，我们参考建造者的改良面板，在左侧来添加一个新的改良面板来种植资源。以下是xml部分：
+
+```xml
+<Context>
+    <Grid ID="SiqiTeachGrid" Anchor="R,B" Offset="501,0" Size="51,160" Texture="UnitPanel_SpecialActionsFrame" SliceCorner="14,14">
+		<Stack ID="SiqiTeachButtonStack" Anchor="R,T" Offset="11,0" StackGrowth="Left" Padding="6" />
+	</Grid>
+	<Instance Name="SiqiTeachInstance">
+		<Container ID="Top" Size="38,140">
+			<Image ID="Row1" Anchor="L,T" Offset="0,15" Texture="UnitPanel_SpecialActionSlot" />
+			<Image ID="Row2" Anchor="L,T" Offset="0,60" Texture="UnitPanel_SpecialActionSlot" />
+			<Image ID="Row3" Anchor="L,T" Offset="0,105" Texture="UnitPanel_SpecialActionSlot" />
+		</Container>
+	</Instance>
+    <Instance Name="ResourseInstance">
+		<Button ID="ResourseButton" Anchor="L,T" Offset="-4,-4" Size="44,53" Texture="Controls_IconButton.dds">
+			<Image ID="ResourseIcon" Anchor="C,C" Offset="0,-1" Size="38,38" Icon="ICON_RESOURCE_BANANAS"/>
+		</Button>
+	</Instance>
+</Context>
+```
+
+解读一下，SiqiTeachGrid是左侧的改良主面板，各项参数是和官方改良面板一致的。SiqiTeachButtonStack排列容器，StackGrowth="Left"表示从右往左排列，Padding="6"是各项间距，就是列与列之间的间距。
+
+Instance的一种动态容器，可以多次叠加，通常配合排列容器Stack使用。
+
+SiqiTeachInstance就是一列的容器，Row1/2/3就是1/2/3行，也就是说，我们的顺序是，从上到下，从右到左。UnitPanel_SpecialActionSlot就是改良的槽图片了。这里是手动计算三行高度，其实你也可以用排列容器Stack来写，不过这里就三行，而且固定，才没必要。
+
+ResourseInstance就是资源按钮，也就是我们主要处理逻辑的地方。
+
+###### **3、刷新逻辑**
+
+现在，我们将这个面板绑定给单位面板吧：
+
+```lua
+-- 单位移动完成时刷新函数
+function OnUnitMoveComplete(playerID, unitID, iX, iY)
+	if playerID ~= Game.GetLocalPlayer() then
+		return
+	end
+	Refresh()
+end
+
+-- 单位选择时刷新函数
+function OnUnitSelectionChanged(playerID, unitID, plotX, plotY, plotZ, bSelected, bEditable)
+	if playerID ~= Game.GetLocalPlayer() then
+		return
+	end
+    if bSelected then
+        Refresh()
+    end
+end
+
+function Initialize()
+	local PanelSlide = ContextPtr:LookUpControl("/InGame/UnitPanel/UnitPanelSlide")
+    if PanelSlide then
+        Controls.SiqiTeachGrid:ChangeParent(PanelSlide)
+        ContextPtr:LookUpControl('/InGame/UnitPanel/UnitPanelBaseContainer'):Reparent()
+    end
+    Events.UnitSelectionChanged.Add(OnUnitSelectionChanged)
+    Events.UnitMoveComplete.Add(OnUnitMoveComplete)
+end
+Events.LoadGameViewStateDone.Add(Initialize)
+```
+
+不同的是，这里绑定的是UnitPanelSlide，也是改良面板所在的地方。
+
+参考前面移除奢侈品的按钮，我们也列出三个问题；
+是否隐藏：是否建造者，是否领土，是否可动。
+是否可用：是否可放置该奢侈品。
+什么文本：奢侈品的产出文本。
+
+于是刷新函数如下：
+
+```lua
+function Refresh()
+    local pUnit = UI.GetHeadSelectedUnit()
+    local unitPanel = ContextPtr:LookUpControl("/InGame/UnitPanel") -- 获取单位面板UI
+    if not Hide() then
+        unitPanel:RequestRefresh() -- 刷新一下面板
+        Controls.SiqiTeachGrid:SetHide(false)
+        ResourseRefresh() -- 刷新资源
+    else
+        unitPanel:RequestRefresh() -- 刷新一下面板
+        Controls.SiqiTeachGrid:SetHide(true)   
+    end
+end
+```
+
+隐藏很简单，我们写一个Hide()函数：
+
+```lua
+function Hide()
+    local pUnit = UI.GetHeadSelectedUnit()
+    if not pUnit then return true; end -- 如果没有选中单位，则隐藏按钮
+    local unitInfo = GameInfo.Units[pUnit:GetType()]
+    if (not unitInfo) or unitInfo.UnitType ~= "UNIT_BUILDER" then return true; end -- 如果单位不是建造者，则隐藏按钮
+    if pUnit:GetBuildCharges() <= 0 then return true; end -- 如果单位没有建造次数，则隐藏按钮
+    if pUnit:GetMovesRemaining() <= 0 then return true; end -- 如果单位没有剩余移动点，则隐藏按钮
+    local pPlot = Map.GetPlot(pUnit:GetX(), pUnit:GetY())
+    if pPlot:GetDistrictType() ~= -1 then return true; end -- 如果地块有区域，则隐藏按钮
+    local ResourceID = pPlot:GetResourceType()
+    local resourceHash = pPlot:GetResourceTypeHash()
+    local pResource = Players[pUnit:GetOwner()]:GetResources()
+    if ResourceID ~= -1 and pResource:IsResourceVisible(resourceHash) then
+        return true -- 如果有资源且资源可见就隐藏
+    end
+    return false -- 否则不隐藏按钮
+end
+```
+
+
+
+###### **4、刷新资源列表**
+
+现在我们写资源的刷新函数：
+但是之前只是一个按钮，我们这里是很多个按钮，并且数量不定。因此需要动态添加控件，也就是Instance，为此，我们需要：
+
+```lua
+include('InstanceManager')
+
+local m_SiqiTeachIM = InstanceManager:new("SiqiTeachInstance", "Top", Controls.SiqiTeachButtonStack)
+```
+
+接入官方的Instance容器函数库，并且将SiqiTeachInstance绑定到SiqiTeachButtonStack排列容器上。当然，这里实际上是新建了一个Instance对象，这个对象可以在排列容器里动态增加或减少。
+
+```lua
+function ResourseRefresh()
+    local pUnit = UI.GetHeadSelectedUnit()
+    m_SiqiTeachIM:DestroyInstances()
+    m_SiqiTeachIM:ResetInstances()
+    Controls.SiqiTeachGrid:SetHide(false)
+    local playerID = pUnit:GetOwner()
+    local pPlayer = Players[playerID]
+    local GoldBalance = pPlayer:GetTreasury():GetGoldBalance() -- 玩家的金币余额
+    local Detail = GetDetail() -- 获取资源详细信息
+    -- 这个详细信息实际上是之前写的资源对象表。
+    local count = #Detail -- 获取资源详细信息的数量
+    for i = 1, count, 3 do -- 每三个一列
+        local columnInstance = m_SiqiTeachIM:GetInstance() -- 创建新实例
+        for iRow = 1, 3, 1 do -- 第一到三行
+            if (i + iRow) - 1 <= count then -- 限制资源数量，不会超过可用的最大资源数
+                local resource = Detail[i + iRow - 1]
+                local slotName = "Row" .. tostring(iRow) -- 第iRow行的控件ID
+                local instance = {} -- 创建一个空实例
+                -- 将ResourseInstance绑在columnInstance[slotName]，也就是SiqiTeachInstance的Row1/2/3上
+                -- 并且将生成的实例赋予instance这个实例上
+                -- 是常见的临时绑实例的方法
+                ContextPtr:BuildInstanceForControl("ResourseInstance", instance, columnInstance[slotName])
+                -- the resource icon
+                instance.ResourseIcon:SetIcon('ICON_' .. resource.RecourceType)
+                -- 按钮点击效果
+                instance.ResourseButton:RegisterCallback(Mouse.eLClick,
+                    function()
+                        local pUnit = UI.GetHeadSelectedUnit()
+                        if pUnit == nil then return end
+                        local x, y = pUnit:GetX(), pUnit:GetY()
+                        UI.RequestPlayerOperation(Game.GetLocalPlayer(),
+                            PlayerOperations.EXECUTE_SCRIPT, {
+                                UnitID = pUnit:GetID(),
+                                X = x,
+                                Y = y,
+                                Index = resource.Index,
+                                OnStart = 'SiqiTeachCreated',
+                            }
+                        ); 
+                        Network.BroadcastPlayerInfo();
+                        Controls.SiqiTeachGrid:SetHide(true) 
+                    end
+                )
+                -- tooltip 鼠标悬空文本
+                local tooltip = Locale.Lookup('LOC_SIQITEACH_CREATE_RESOURCE', resource.IconString, resource.Name)
+                tooltip = tooltip .. '[NEWLINE][NEWLINE]' .. resource:GetChangeYieldsTooltip() -- 获取资源产出文本
+                if GoldBalance >= 100 then -- 看看是否有足够金币种植资源，不够就显示红色
+                    tooltip = tooltip .. '[NEWLINE][NEWLINE]' .. Locale.Lookup('LOC_SIQITEACH_CREATE_NEED_GOLD')
+                else
+                    tooltip = tooltip .. '[NEWLINE][NEWLINE][COLOR:Civ6Red]'..Locale.Lookup('LOC_SIQITEACH_CREATE_NEED_GOLD')..'[ENDCOLOR]'
+                end
+                instance.ResourseButton:SetToolTipString(tooltip)
+                instance.ResourseButton:SetDisabled(GoldBalance <= 100) -- 按钮是否可用
+            end
+        end
+    end
+    -- 处理与改良面板的位置冲突
+    local RES_PANEL_ART_PADDING_X = 24;
+    local RES_PANEL_ART_PADDING_Y = 20;
+    Controls.SiqiTeachButtonStack:CalculateSize(); -- 重新计算排列容器尺寸
+    local stackWidth  = Controls.SiqiTeachButtonStack:GetSizeX();
+    local stackHeight = Controls.SiqiTeachButtonStack:GetSizeY();
+    Controls.SiqiTeachGrid:SetSizeX(stackWidth + RES_PANEL_ART_PADDING_X) -- 重新设置排列容器尺寸的宽
+    Controls.SiqiTeachGrid:SetSizeY(stackHeight + RES_PANEL_ART_PADDING_Y) -- 重新设置排列容器尺寸的高
+    local container = ContextPtr:LookUpControl('/InGame/UnitPanel/UnitPanelBaseContainer') -- 单位基础面板
+    local container2 = ContextPtr:LookUpControl('/InGame/UnitPanel/BuildActionsStack') -- 改良面板
+    Controls.SiqiTeachGrid:SetOffsetX(container:GetSizeX() + container2:GetSizeX() + 182) -- 设置一下偏移，让资源面板始终出现在改良面板左侧，182可以酌情修改
+end
+```
+
+其中涉及的文本如下：
+
+```sql
+INSERT INTO LocalizedText (Language, Tag, Text) VALUES
+('zh_Hans_CN', 'LOC_SIQITEACH_CREATE_RESOURCE',    '创建：{1_Icon} {2_Name}'),
+('zh_Hans_CN', 'LOC_SIQITEACH_CREATE_NEED_GOLD',   '需要消耗100[ICON_Gold] 金币。');
+```
+
+###### **5、效果实现**
+
+最后，我们在GP新建一个文件，把种植资源的逻辑完成即可：
+
+```lua
+-- 减少单位的劳动力
+function ReduceUnitBuildCharge(playerID, unitID)
+    local pUnit = UnitManager.GetUnit(playerID, unitID) -- 获取玩家的单位
+    if pUnit == nil then return; end -- 如果单位不存在则返回
+    local pUnitAbility = pUnit:GetAbility()
+    for i = 1,16 do
+        if pUnitAbility:GetAbilityCount("ABILITY_SIQI_TEACH_REDUCED_CHARGE_"..i) == 0 then
+            pUnitAbility:ChangeAbilityCount("ABILITY_SIQI_TEACH_REDUCED_CHARGE_"..i, 1);
+            break
+        end
+    end
+end
+
+function SiqiTeachCreated(playerID, params)
+    local pUnit = UnitManager.GetUnit(playerID, params.UnitID)
+    local pPlot = Map.GetPlot(params.X, params.Y)
+    local pPlayer = Players[playerID]
+    ResourceBuilder.SetResourceType(pPlot, params.Index, 1)
+    UnitManager.FinishMoves(pUnit) -- 结束单位的移动
+    ReduceUnitBuildCharge(playerID, params.UnitID)
+    pPlayer:GetTreasury():ChangeGoldBalance(-100) -- 扣除100金币
+end
+
+function Initialize()
+    GameEvents.SiqiTeachCreated.Add(SiqiTeachCreated)
+end
+
+Events.LoadGameViewStateDone.Add(Initialize)
+```
+
+其中减少劳动力部分的代码和上面的一致，这里就不重复显示了。
 
 #### 1.2 一些功能性函数
 
@@ -2115,9 +2433,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
 
 为了让各位更好的理解该mod的内容，我们新写一个UI面板，面板大小相比前面的教程略微有所调整；假设我们要设计的面板如下：
 
-> ![alt text](img/image6.jpg)
-
-通过观察不难发现，我们在这个面板的左边展示了场上所有玩家的文明图标和领袖图标，点击对应的领袖图标按钮后会在右边显示其所有的城市，每个城市都创建了一个实例（为了方便后续对城市进行操作）。在前面的教程中我们提到，`InstanceManager:new()`: 这个函数是调用`InstanceManager`类的构造函数，专门用于创建我们在xml里面写好的UI实例。显然我们需要遍历场上的所有玩家，然后针对每一个玩家遍历其所有的城市；那么我们的按钮在每次遍历场上玩家的时候都会生成一次，有几个玩家就会生成几个按钮；最后再给每一个按钮赋予功能：展示该玩家的所有城市。
+通过观察不难发现，我们在这个面板的左边展示了场上所有玩家的文明图标和领袖图标，点击对应的领袖图标按钮后会在右边显示其所有的城市，每个城市都创建了一个实例（为了方便后续对城市进行操作）。在前面的教程中我们提到，`InstanceManager:new()`: 这个函数是调用 `InstanceManager`类的构造函数，专门用于创建我们在xml里面写好的UI实例。显然我们需要遍历场上的所有玩家，然后针对每一个玩家遍历其所有的城市；那么我们的按钮在每次遍历场上玩家的时候都会生成一次，有几个玩家就会生成几个按钮；最后再给每一个按钮赋予功能：展示该玩家的所有城市。
 
 以上是我们这个UI界面设计的大致思路；接下来我们具体分析代码的实现过程。
 首先是xml部分；和以前一样，我们先搭好一个框架，和第1.4.1节一样，我们写下如下代码（注意主容器大小略微有所调整）：
@@ -2138,14 +2454,14 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
             </Container>
             <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
                 <GridButton ID="SelectTab_FirstPage" Style="TabButton" Size="125,35">
-                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>                 
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>           
                 </GridButton>
             </Stack>
         </Tab>
     </Container>
 ```
 
-之后，我们写下在界面FirstPage下的代码，通过观察上面的面板不难发现，我们有两个Grid控件，其中一个在左边，用来显示所有玩家对应的文明图标和领袖图标；另一个在右边，用来显示每个领袖所有的城市，对于控件的边框样式，我们依然采用父控件的边框样式，即：使用一个名为`Religion_OverviewFrame`的纹理作为这个内容面板的背景；且背景板的圆角为15x15像素:
+之后，我们写下在界面FirstPage下的代码，通过观察上面的面板不难发现，我们有两个Grid控件，其中一个在左边，用来显示所有玩家对应的文明图标和领袖图标；另一个在右边，用来显示每个领袖所有的城市，对于控件的边框样式，我们依然采用父控件的边框样式，即：使用一个名为 `Religion_OverviewFrame`的纹理作为这个内容面板的背景；且背景板的圆角为15x15像素:
 
 ```xml
         <Grid ID="loadplayer" Size="165,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
@@ -2164,7 +2480,8 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
                 <Label ID="Loadleader" String="LOC_LEADER" Anchor="R,T" Offset="25,25" Style="FontFlair22" FontStyle="glow" ColorSet="ShellHeader"/>
         </Grid>
 ```
-然后还有一个堆叠容器，根据前面的教程，其类型应该是Stack；该Stack容器里面包涵一个滚动面板ScrollPanel，ScrollPanel里面还要有一个Stack，堆叠方式`StackGrowth`应该填`Down`（自上而下依次堆叠），我们所有的文明和领袖图标都要放在这个Stack里面；除此之外还要有一个滚动条。我们的代码看起来像这样：
+
+然后还有一个堆叠容器，根据前面的教程，其类型应该是Stack；该Stack容器里面包涵一个滚动面板ScrollPanel，ScrollPanel里面还要有一个Stack，堆叠方式 `StackGrowth`应该填 `Down`（自上而下依次堆叠），我们所有的文明和领袖图标都要放在这个Stack里面；除此之外还要有一个滚动条。我们的代码看起来像这样：
 
 ```xml
         <Grid ID="loadplayer" Size="165,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
@@ -2179,7 +2496,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
         </Grid>
 ```
 
-其中，我们在ScrollPanel里面定义了AutoScrollBar="1"，意味着当里面的内容溢出时，会自动显示滚动条，所以下面的`<ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />`不写也是可以的，但是这里保险起见写上了。然后再写显示每一个领袖所有城市的控件，代码如下：
+其中，我们在ScrollPanel里面定义了AutoScrollBar="1"，意味着当里面的内容溢出时，会自动显示滚动条，所以下面的 `<ScrollBar Style="Slider_Light" Anchor="R,C" Offset="2,0" />`不写也是可以的，但是这里保险起见写上了。然后再写显示每一个领袖所有城市的控件，代码如下：
 
 ```xml
         <Grid ID="loadcity" Size="parent-170,parent" Offset="170,0" Texture="Religion_OverviewFrame" SliceCorner="15,15"> 
@@ -2194,7 +2511,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
         </Grid>
 ```
 
-其中`Label ID="Loadcity"`是UI界面上“该玩家的所有城市”文本，String="LOC_THIS_PLAYER_ALL_CITIES"是其对应的具体内容（需要在text.xml里面定义），`Label ID="NotBuildCity"`是指当这个玩家还没有建立城市的时候显示的文本，默认隐藏，具体内容为String="LOC_DO_NOT_BUILD_CITY"：该领袖还未建立任何城市。其他的内容与左边的控件写法差不多。
+其中 `Label ID="Loadcity"`是UI界面上“该玩家的所有城市”文本，String="LOC_THIS_PLAYER_ALL_CITIES"是其对应的具体内容（需要在text.xml里面定义），`Label ID="NotBuildCity"`是指当这个玩家还没有建立城市的时候显示的文本，默认隐藏，具体内容为String="LOC_DO_NOT_BUILD_CITY"：该领袖还未建立任何城市。其他的内容与左边的控件写法差不多。
 
 我们的主体部分大致如下：
 
@@ -2233,14 +2550,14 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
             </Container>
             <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
                 <GridButton ID="SelectTab_EROSIONTab1" Style="TabButton" Size="125,35">
-                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>                 
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>           
                 </GridButton>
             </Stack>
         </Tab>
     </Container>
 ```
 
-之后是Instance部分，首先我们先写玩家的部分，对于每一个玩家，我们都要生成其对应的文明图标和领袖图标，由于我们点击对应领袖的图标就会显示该领袖（该玩家）的所有城市，所以该图标应该放在一个按钮里面，然后文明图标和领袖图标也要放在一个Grid控件里面，对于控件的边框样式，我们依然采用一个名为`Religion_OverviewFrame`的纹理作为这个控件的背景。具体代码如下：
+之后是Instance部分，首先我们先写玩家的部分，对于每一个玩家，我们都要生成其对应的文明图标和领袖图标，由于我们点击对应领袖的图标就会显示该领袖（该玩家）的所有城市，所以该图标应该放在一个按钮里面，然后文明图标和领袖图标也要放在一个Grid控件里面，对于控件的边框样式，我们依然采用一个名为 `Religion_OverviewFrame`的纹理作为这个控件的背景。具体代码如下：
 
 ```xml
     <Instance Name="SelectPlayer">
@@ -2252,7 +2569,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
             <Button ID="AnyPlayerSelect" Texture="LaunchBar_Hook_GreatWorksButton" Style="ButtonNormalText" TextureOffset="0,2" StateOffsetIncrement="0,50" Size="50,50" Anchor="R,C" Offset="10,0">
                 <Image ID="LaunchPlayer" Size="49,49" Anchor="C,C" Offset="0,0"/>
             </Button> 
-        </Grid>       
+        </Grid>   
         </Container>
 	</Instance>
 ```
@@ -2263,10 +2580,10 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
     <Instance Name="SelectCity">
         <Container ID="Cities" Size="1100,65">
         <Grid ID="city" Size="parent,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15">
-            <Stack StackGrowth="Right" Anchor="L,C" Size="250,50"  StackPadding="20">                
+            <Stack StackGrowth="Right" Anchor="L,C" Size="250,50"  StackPadding="20">          
 			    <Image ID="CityPicture" Size="50,50" Offset="5,0" Anchor="L,C"/>  
                     <Label ID="CityForName" Style="FontFlair16" Anchor="L,C" Color0="208,212,217,255" Color1="0,0,0,50"/>
-            </Stack>      
+            </Stack>  
         </Grid>
         </Container>
     </Instance>
@@ -2307,7 +2624,7 @@ local m_LaunchItemInstancePlayerManager = InstanceManager:new("SelectPlayer", "P
 local m_LaunchItemInstanceCityManager = InstanceManager:new("SelectCity", "Cities", Controls.AllCityStack)
 ```
 
-其中`Controls.AllPlayerStack`和`Controls.AllCityStack`分别是xml里面在滚动面板里面定义的<Stack>控件的ID。
+其中 `Controls.AllPlayerStack`和 `Controls.AllCityStack`分别是xml里面在滚动面板里面定义的 `<Stack>`控件的ID。
 
 之后就是挂载我们的按钮，定义一些常量以及按钮可见性的判断，这里与第1.4.1节差不多，代码如下：
 
@@ -2341,7 +2658,7 @@ function SetupLaunchBarButtonKiana()
     if ctrl == nil then-- 兼容性检查
         return
     end
-    
+  
     if EntryButtonInstance == nil then  -
         EntryButtonInstance = m_LaunchItemInstanceManager:GetInstance(ctrl)    -- 创建按钮实例并挂载到游戏UI
         LaunchBarPinInstance = m_LaunchBarPinInstanceManager:GetInstance(ctrl)
@@ -2377,7 +2694,7 @@ function KianaInputHandler(uiMsg, wParam, lParam)  --输入处理
             end
         end
     end
-    
+  
     return false -- 其他按键不拦截
 end
 
@@ -2426,14 +2743,14 @@ function SelectKianaPlayers()  --获取场上所有玩家，并储存
         local pPlayerID = pPlayer:GetID();  --获取该玩家的ID
         local pPlayerConfig = PlayerConfigurations[pPlayerID];  --获取该玩家信息
 		local CivilizationTypeName = pPlayerConfig:GetCivilizationTypeName()   --获取文明变量名
-        local civName = Locale.Lookup(GameInfo.Civilizations[CivilizationTypeName].Name); --确定文明名字（中文）	
+        local civName = Locale.Lookup(GameInfo.Civilizations[CivilizationTypeName].Name); --确定文明名字（中文）
 		local civIcon = "ICON_"..CivilizationTypeName;  --确定文明图标(字符串)
         local LeaderTypeName = pPlayerConfig:GetLeaderTypeName()    --获取领袖变量名
 		local leaderName;
         local leadericon = "ICON_"..LeaderTypeName;  --确定领袖图标（字符串）
 		if pPlayer:IsHuman() then  --如果玩家是人类
-			local playerName = Locale.Lookup(pPlayerConfig:GetPlayerName());  --确定玩家的领袖名字（中文）	
-			leaderName = Locale.Lookup(GameInfo.Leaders[LeaderTypeName].Name) .. " ("..Locale.Lookup(playerName)..")"  --确实最终的领袖名字（中文）	
+			local playerName = Locale.Lookup(pPlayerConfig:GetPlayerName());  --确定玩家的领袖名字（中文）
+			leaderName = Locale.Lookup(GameInfo.Leaders[LeaderTypeName].Name) .. " ("..Locale.Lookup(playerName)..")"  --确实最终的领袖名字（中文）
 		else
 			leaderName = Locale.Lookup(GameInfo.Leaders[LeaderTypeName].Name);
 		end
@@ -2479,7 +2796,7 @@ function GetPlayerAllCities(pPlayerID)  --获取玩家所有城市，并储存
 end
 ```
 
-好了，上面所有的玩家信息都已经获取了，接下来就是如何把这些信息显示在我们的UI界面上。首先，我们打开界面，就要刷新场上所有的玩家对应的文明以及领袖信息，所以我们要在`ShowKianaWindow()`函数里面加上一个刷新所有玩家信息的函数：`RefreshAllPlayers()`:
+好了，上面所有的玩家信息都已经获取了，接下来就是如何把这些信息显示在我们的UI界面上。首先，我们打开界面，就要刷新场上所有的玩家对应的文明以及领袖信息，所以我们要在 `ShowKianaWindow()`函数里面加上一个刷新所有玩家信息的函数：`RefreshAllPlayers()`:
 
 ```lua
 function ShowKianaWindow() -- 打开界面
@@ -2489,7 +2806,7 @@ function ShowKianaWindow() -- 打开界面
 end
 ```
 
-然后我们写上`RefreshAllPlayers()`这个函数的具体逻辑：
+然后我们写上 `RefreshAllPlayers()`这个函数的具体逻辑：
 
 ```lua
 function RefreshAllPlayers()--刷新所有玩家信息
@@ -2512,7 +2829,7 @@ function RefreshAllPlayers()--刷新所有玩家信息
 end
 ```
 
-然后写上`RefreshPlayerAllCities`这个函数的逻辑，刷新玩家城市：
+然后写上 `RefreshPlayerAllCities`这个函数的逻辑，刷新玩家城市：
 
 ```lua
 function RefreshPlayerAllCities(playerID)  --根据传递的玩家ID来获取玩家的城市
@@ -2534,7 +2851,7 @@ function RefreshPlayerAllCities(playerID)  --根据传递的玩家ID来获取玩
 end
 ```
 
-最后补充上我们在`RefreshAllPlayers()`函数中写的提示文本：`instance.AnyCivSelect:SetToolTipString(GetKianaCivTooltipText(pPlayer))`和`instance.AnyPlayerSelect:SetToolTipString(GetKianaPlayerTooltipText(pPlayer))`：
+最后补充上我们在 `RefreshAllPlayers()`函数中写的提示文本：`instance.AnyCivSelect:SetToolTipString(GetKianaCivTooltipText(pPlayer))`和 `instance.AnyPlayerSelect:SetToolTipString(GetKianaPlayerTooltipText(pPlayer))`：
 
 ```lua
 function GetKianaCivTooltipText(CivilizationTypeName)  -- 提示文本

@@ -1,0 +1,17 @@
+<Context>
+    <Grid ID="SiqiTeachGrid" Anchor="R,B" Offset="501,0" Size="51,160" Texture="UnitPanel_SpecialActionsFrame" SliceCorner="14,14">
+		<Stack ID="SiqiTeachButtonStack" Anchor="R,T" Offset="11,0" StackGrowth="Left" Padding="6" />
+	</Grid>
+	<Instance Name="SiqiTeachInstance">
+		<Container ID="Top" Size="38,140">
+			<Image ID="Row1" Anchor="L,T" Offset="0,15" Texture="UnitPanel_SpecialActionSlot" />
+			<Image ID="Row2" Anchor="L,T" Offset="0,60" Texture="UnitPanel_SpecialActionSlot" />
+			<Image ID="Row3" Anchor="L,T" Offset="0,105" Texture="UnitPanel_SpecialActionSlot" />
+		</Container>
+	</Instance>
+    <Instance Name="ResourseInstance">
+		<Button ID="ResourseButton" Anchor="L,T" Offset="-4,-4" Size="44,53" Texture="Controls_IconButton.dds">
+			<Image ID="ResourseIcon" Anchor="C,C" Offset="0,-1" Size="38,38" Icon="ICON_RESOURCE_BANANAS"/>
+		</Button>
+	</Instance>
+</Context>

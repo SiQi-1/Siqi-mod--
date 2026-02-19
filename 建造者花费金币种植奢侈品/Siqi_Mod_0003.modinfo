@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Mod id="a8685034-c572-40a3-affc-b8e6e38f9643" version="1">
+  <Properties>
+    <Name>建造者可花费金币种植奢侈品资源</Name>
+    <Description>建造者可花费金币种植奢侈品资源</Description>
+    <Created>1771486588</Created>
+    <Teaser>建造者可花费金币种植奢侈品资源</Teaser>
+    <Authors>Siqi</Authors>
+    <CompatibleVersions>1.2,2.0</CompatibleVersions>
+  </Properties>
+  <Dependencies></Dependencies>
+  <InGameActions>
+    <AddGameplayScripts id="AddGameplayScripts">
+      <File>Siqi_Mod_0003_GamePlay.lua</File>
+    </AddGameplayScripts>
+    <AddUserInterfaces id="AddUserInterfaces">
+      <Properties>
+        <Context>InGame</Context>
+      </Properties>
+      <File>Siqi_Mod_0003_UI.xml</File>
+    </AddUserInterfaces>
+    <UpdateText id="UpdateText">
+      <File>Siqi_Mod_0003_Text.sql</File>
+    </UpdateText>
+    <UpdateDatabase id="UpdateDatabase">
+      <File>Siqi_Mod_0003_Ability.sql</File>
+    </UpdateDatabase>
+  </InGameActions>
+  <Files>
+    <File>Siqi_Mod_0003_Ability.sql</File>
+    <File>Siqi_Mod_0003_GamePlay.lua</File>
+    <File>Siqi_Mod_0003_Text.sql</File>
+    <File>Siqi_Mod_0003_UI.lua</File>
+    <File>Siqi_Mod_0003_UI.xml</File>
+  </Files>
+</Mod>
