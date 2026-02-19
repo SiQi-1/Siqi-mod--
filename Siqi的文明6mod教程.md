@@ -704,8 +704,6 @@ function GetDetail() -- 仅限UI
 end
 ```
 
-
-
 ###### **2、XML定义**
 
 数据层面的内容就做完了，现在我们开始写UI面板，我们参考建造者的改良面板，在左侧来添加一个新的改良面板来种植资源。以下是xml部分：
@@ -730,13 +728,13 @@ end
 </Context>
 ```
 
-解读一下，SiqiTeachGrid是左侧的改良主面板，各项参数是和官方改良面板一致的。SiqiTeachButtonStack排列容器，StackGrowth="Left"表示从右往左排列，Padding="6"是各项间距，就是列与列之间的间距。
+> 解读一下，SiqiTeachGrid是左侧的改良主面板，各项参数是和官方改良面板一致的。SiqiTeachButtonStack排列容器，StackGrowth="Left"表示从右往左排列，Padding="6"是各项间距，就是列与列之间的间距。
 
-Instance的一种动态容器，可以多次叠加，通常配合排列容器Stack使用。
+> Instance的一种动态容器，可以多次叠加，通常配合排列容器Stack使用。
 
-SiqiTeachInstance就是一列的容器，Row1/2/3就是1/2/3行，也就是说，我们的顺序是，从上到下，从右到左。UnitPanel_SpecialActionSlot就是改良的槽图片了。这里是手动计算三行高度，其实你也可以用排列容器Stack来写，不过这里就三行，而且固定，才没必要。
+> SiqiTeachInstance就是一列的容器，Row1/2/3就是1/2/3行，也就是说，我们的顺序是，从上到下，从右到左。UnitPanel_SpecialActionSlot就是改良的槽图片了。这里是手动计算三行高度，其实你也可以用排列容器Stack来写，不过这里就三行，而且固定，才没必要。
 
-ResourseInstance就是资源按钮，也就是我们主要处理逻辑的地方。
+> ResourseInstance就是资源按钮，也就是我们主要处理逻辑的地方。
 
 ###### **3、刷新逻辑**
 
@@ -775,7 +773,7 @@ Events.LoadGameViewStateDone.Add(Initialize)
 
 不同的是，这里绑定的是UnitPanelSlide，也是改良面板所在的地方。
 
-参考前面移除奢侈品的按钮，我们也列出三个问题；
+参考前面移除奢侈品的按钮，我们也列出三个问题：
 是否隐藏：是否建造者，是否领土，是否可动。
 是否可用：是否可放置该奢侈品。
 什么文本：奢侈品的产出文本。
@@ -819,8 +817,6 @@ function Hide()
 end
 ```
 
-
-
 ###### **4、刷新资源列表**
 
 现在我们写资源的刷新函数：
@@ -832,13 +828,13 @@ include('InstanceManager')
 local m_SiqiTeachIM = InstanceManager:new("SiqiTeachInstance", "Top", Controls.SiqiTeachButtonStack)
 ```
 
-接入官方的Instance容器函数库，并且将SiqiTeachInstance绑定到SiqiTeachButtonStack排列容器上。当然，这里实际上是新建了一个Instance对象，这个对象可以在排列容器里动态增加或减少。
+接入官方的Instance实例函数库，并且将SiqiTeachInstance绑定到SiqiTeachButtonStack排列容器上。当然，这里实际上是新建了一个Instance对象，这个对象可以在排列容器里动态增加或减少。
 
 ```lua
 function ResourseRefresh()
     local pUnit = UI.GetHeadSelectedUnit()
-    m_SiqiTeachIM:DestroyInstances()
-    m_SiqiTeachIM:ResetInstances()
+    m_SiqiTeachIM:DestroyInstances() -- 清空之前的全部实例
+    m_SiqiTeachIM:ResetInstances() -- 刷新一下
     Controls.SiqiTeachGrid:SetHide(false)
     local playerID = pUnit:GetOwner()
     local pPlayer = Players[playerID]
@@ -847,7 +843,7 @@ function ResourseRefresh()
     -- 这个详细信息实际上是之前写的资源对象表。
     local count = #Detail -- 获取资源详细信息的数量
     for i = 1, count, 3 do -- 每三个一列
-        local columnInstance = m_SiqiTeachIM:GetInstance() -- 创建新实例
+        local columnInstance = m_SiqiTeachIM:GetInstance() -- 创建新实例，就是新加一列
         for iRow = 1, 3, 1 do -- 第一到三行
             if (i + iRow) - 1 <= count then -- 限制资源数量，不会超过可用的最大资源数
                 local resource = Detail[i + iRow - 1]
@@ -2454,7 +2450,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
             </Container>
             <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
                 <GridButton ID="SelectTab_FirstPage" Style="TabButton" Size="125,35">
-                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>           
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>         
                 </GridButton>
             </Stack>
         </Tab>
@@ -2550,7 +2546,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
             </Container>
             <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
                 <GridButton ID="SelectTab_EROSIONTab1" Style="TabButton" Size="125,35">
-                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>           
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>         
                 </GridButton>
             </Stack>
         </Tab>
@@ -2580,7 +2576,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
     <Instance Name="SelectCity">
         <Container ID="Cities" Size="1100,65">
         <Grid ID="city" Size="parent,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15">
-            <Stack StackGrowth="Right" Anchor="L,C" Size="250,50"  StackPadding="20">          
+            <Stack StackGrowth="Right" Anchor="L,C" Size="250,50"  StackPadding="20">        
 			    <Image ID="CityPicture" Size="50,50" Offset="5,0" Anchor="L,C"/>  
                     <Label ID="CityForName" Style="FontFlair16" Anchor="L,C" Color0="208,212,217,255" Color1="0,0,0,50"/>
             </Stack>  
