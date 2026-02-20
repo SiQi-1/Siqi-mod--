@@ -760,9 +760,10 @@ function OnUnitSelectionChanged(playerID, unitID, plotX, plotY, plotZ, bSelected
 end
 
 function Initialize()
-	local PanelSlide = ContextPtr:LookUpControl("/InGame/UnitPanel/UnitPanelSlide")
+    local PanelSlide = ContextPtr:LookUpControl("/InGame/UnitPanel/UnitPanelSlide")
     if PanelSlide then
         Controls.SiqiTeachGrid:ChangeParent(PanelSlide)
+	-- reparent it to cover the Resource Panel
         ContextPtr:LookUpControl('/InGame/UnitPanel/UnitPanelBaseContainer'):Reparent()
     end
     Events.UnitSelectionChanged.Add(OnUnitSelectionChanged)
@@ -2450,7 +2451,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
             </Container>
             <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
                 <GridButton ID="SelectTab_FirstPage" Style="TabButton" Size="125,35">
-                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>         
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>       
                 </GridButton>
             </Stack>
         </Tab>
@@ -2546,7 +2547,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
             </Container>
             <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
                 <GridButton ID="SelectTab_EROSIONTab1" Style="TabButton" Size="125,35">
-                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>         
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>       
                 </GridButton>
             </Stack>
         </Tab>
@@ -2576,7 +2577,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
     <Instance Name="SelectCity">
         <Container ID="Cities" Size="1100,65">
         <Grid ID="city" Size="parent,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15">
-            <Stack StackGrowth="Right" Anchor="L,C" Size="250,50"  StackPadding="20">        
+            <Stack StackGrowth="Right" Anchor="L,C" Size="250,50"  StackPadding="20">      
 			    <Image ID="CityPicture" Size="50,50" Offset="5,0" Anchor="L,C"/>  
                     <Label ID="CityForName" Style="FontFlair16" Anchor="L,C" Color0="208,212,217,255" Color1="0,0,0,50"/>
             </Stack>  
