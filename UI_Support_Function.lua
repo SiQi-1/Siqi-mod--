@@ -3,9 +3,6 @@
 -- 共用常量
 local SiqiBinaryList = {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536}
 
--- ===========================================================================
--- GP / UI 共用函数（UI侧可直接调用）
--- ===========================================================================
 
 -- 是否是目标文明
 function IsCivilization(playerID, sCivilizationType)
@@ -211,10 +208,6 @@ function GetPlayerProgress(playerID)
 	local modifier = (1 + 9 * math.floor(math.max(techProgress, civicProgress) * 100) / 100)
 	return modifier
 end
-
--- ===========================================================================
--- UI 专用读取函数
--- ===========================================================================
 
 -- 城市宜居度
 function GetCityAminity(playerID, cityID)
@@ -491,4 +484,22 @@ function GetGovernorCity(playerID, governorType)
 		end
 	end
 	return nil;
+end
+
+-- 总督是否拥有某晋升
+function GovernorHasPromotion(playerID, governorType, promotionType)
+	local pPlayer = Players[playerID]
+	if not pPlayer then return false; end
+	local pPlayerGovernors = pPlayer:GetGovernors();
+	local bHasGovernors, tGovernorList = pPlayerGovernors:GetGovernorList();
+	for i,governor in ipairs(tGovernorList) do
+		local igovernorType = governor:GetType();
+		local governorDef = GameInfo.Governors[igovernorType];
+		if governorDef.GovernorType == governorType then
+			local PromotionDef = GameInfo.GovernorPromotions[promotionType];
+			if not PromotionDef then return false; end
+			return governor:HasPromotion(PromotionDef.Hash);
+		end
+	end
+	return false;
 end

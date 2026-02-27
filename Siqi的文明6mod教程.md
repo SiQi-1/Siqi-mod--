@@ -26,6 +26,10 @@
 - 文明6游戏文件目录（Steam）：**\Steam\steamapps\common\Sid Meier's Civilization VI**
 - Steam创意工坊mod文件目录：**\Steam\steamapps\workshop\content\289070**
 
+目录
+[1.1 UI](#11-ui)
+[1.1.1 单位按钮：移除奢侈品](#111-单位按钮移除奢侈品)
+
 ### 1. lua
 
 #### 1.1 UI
