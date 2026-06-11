@@ -503,3 +503,55 @@ function GovernorHasPromotion(playerID, governorType, promotionType)
 	end
 	return false;
 end
+
+-- 获取城市当前总督，并且返回详细信息表
+-- Def:详细信息表，包含总督的基本信息
+-- IsEstablished:是否已经上任
+-- TurnsOnSite:已经在这个城市待了多少回合了
+-- TurnsToEstablish:需要多少回合才能上任
+-- TurnsUntilEstablished:还需要多少回合才能上任
+-- NeutralizedTurns:已经被陷害了多少回合了
+function GetCityGovernorDetailed(playerID, cityID)
+	local pCity = CityManager.GetCity(playerID, cityID)
+	if not pCity then return nil; end
+	local pPlayerGovernors = pPlayer:GetGovernors();
+	local pCurrentGovernor = pPlayerGovernors and pPlayerGovernors:GetAssignedGovernor(pCity) or nil;
+	if pCurrentGovernor then
+		local pCurrentGovernorDef = GameInfo.Governors[pCurrentGovernor:GetType()];
+		if pCurrentGovernorDef then
+			return {
+				Def              = pCurrentGovernorDef,
+				IsEstablished    = pCurrentGovernor:IsEstablished(),
+				TurnsOnSite      = pCurrentGovernor:GetTurnsOnSite(),
+				TurnsToEstablish = pCurrentGovernor:GetTurnsToEstablish(),
+				TurnsUntilEstablished = math.max(0, pCurrentGovernor:GetTurnsToEstablish() - pCurrentGovernor:GetTurnsOnSite()),
+				NeutralizedTurns = pCurrentGovernor:GetNeutralizedTurns()
+			}
+		else
+			return nil;
+		end
+	end
+	return nil;
+end
+
+-- 获取城市当前所有被派遣的总督（包括国外的）
+function GetCityGovernorAll(playerID, cityID)
+	local pCity = CityManager.GetCity(playerID, cityID)
+	if not pCity then return nil; end
+	local governors = pCity:GetAllAssignedGovernors();
+	table.sort(governors, function(a, b) return a:GetOwner() == playerID end);
+	local data = {}
+	data.Self = nil
+	data.Foreign = {}
+	local pPlayer = Players[playerID]
+	local pDiplomacy = pPlayer:GetDiplomacy()
+	for i, pGovernor in ipairs(governors) do
+		local Owner = pGovernor:GetOwner()
+		if Owner == playerID then
+			data.Self = pGovernor
+		else
+			table.insert(data.Foreign, pGovernor)
+		end
+	end
+	return data;
+end

@@ -525,7 +525,7 @@ end
 
 ###### **1、资源的对象与方法**
 
-我们常常使用类似pCity:GetX()这种函数，其实就是对象与方法，我们也可以写自己的对象与方法，在这里，我们将一个资源作为对象，用来进行后续的操作。
+我们常常使用类似 `pCity:GetX()`这种函数，其实就是对象与方法，我们也可以写自己的对象与方法，在这里，我们将一个资源作为对象，用来进行后续的操作。
 
 ```lua
 function SiqiResource:new(RecourceType)
@@ -673,10 +673,10 @@ INSERT INTO LocalizedText (Language, Tag, Text) VALUES
 ```
 
 现在，我们总结一下，想要种植一个资源，需要的东西：
-资源对象：SiqiResource:new(RecourceType)
-基础信息（名字，图标）：SiqiResource.Name和SiqiResource.IconString
-能不能种：SiqiResource:CanPlaceHere(playerID, pPlot)
-给多少产出：SiqiResource:GetChangeYieldsTooltip()
+资源对象：`SiqiResource:new(RecourceType)`
+基础信息（名字，图标）：`SiqiResource.Name和SiqiResource.IconString`
+能不能种：`SiqiResource:CanPlaceHere(playerID, pPlot)`
+给多少产出：`SiqiResource:GetChangeYieldsTooltip()`
 
 然后我们写一个获取详细信息的函数
 
@@ -732,13 +732,13 @@ end
 </Context>
 ```
 
-> 解读一下，SiqiTeachGrid是左侧的改良主面板，各项参数是和官方改良面板一致的。SiqiTeachButtonStack排列容器，StackGrowth="Left"表示从右往左排列，Padding="6"是各项间距，就是列与列之间的间距。
+> 解读一下，SiqiTeachGrid是左侧的改良主面板，各项参数是和官方改良面板一致的。`SiqiTeachButtonStack`排列容器，`StackGrowth="Left"`表示从右往左排列，Padding="6"是各项间距，就是列与列之间的间距。
 
 > Instance的一种动态容器，可以多次叠加，通常配合排列容器Stack使用。
 
-> SiqiTeachInstance就是一列的容器，Row1/2/3就是1/2/3行，也就是说，我们的顺序是，从上到下，从右到左。UnitPanel_SpecialActionSlot就是改良的槽图片了。这里是手动计算三行高度，其实你也可以用排列容器Stack来写，不过这里就三行，而且固定，才没必要。
+> SiqiTeachInstance就是一列的容器，Row1/2/3就是1/2/3行，也就是说，我们的顺序是，从上到下，从右到左。`UnitPanel_SpecialActionSlot`就是改良的槽图片了。这里是手动计算三行高度，其实你也可以用排列容器Stack来写，不过这里就三行，而且固定，才没必要。
 
-> ResourseInstance就是资源按钮，也就是我们主要处理逻辑的地方。
+> `ResourseInstance`就是资源按钮，也就是我们主要处理逻辑的地方。
 
 ###### **3、刷新逻辑**
 
@@ -776,7 +776,7 @@ end
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
 
-不同的是，这里绑定的是UnitPanelSlide，也是改良面板所在的地方。
+不同的是，这里绑定的是 `UnitPanelSlide`，也是改良面板所在的地方。
 
 参考前面移除奢侈品的按钮，我们也列出三个问题：
 是否隐藏：是否建造者，是否领土，是否可动。
@@ -914,6 +914,8 @@ INSERT INTO LocalizedText (Language, Tag, Text) VALUES
 ('zh_Hans_CN', 'LOC_SIQITEACH_CREATE_NEED_GOLD',   '需要消耗100[ICON_Gold] 金币。');
 ```
 
+> 值得注意的是， `如果有多个类似的面板同时显示，会互相覆盖，这种只能做兼容了。`
+
 ###### **5、效果实现**
 
 最后，我们在GP新建一个文件，把种植资源的逻辑完成即可：
@@ -949,7 +951,32 @@ end
 Events.LoadGameViewStateDone.Add(Initialize)
 ```
 
-其中减少劳动力部分的代码和上面的一致，这里就不重复显示了。
+其中减少劳动力部分的代码和上面的一致，这里就不重复显示了。完整代码可以在 [建造者花费金币种植奢侈品](./建造者花费金币种植奢侈品)  查看
+
+##### 1.1.3 单位按钮：召唤灾难
+
+现在，我们拼尽全力cos一个预言者，本节我们要完成的是：新建一个平民单位，其可以在单元格上召唤指定的灾难。
+
+参考Mod： [明日方舟-泥岩](https://steamcommunity.com/sharedfiles/filedetails/?id=2982609319&searchtext=%E6%B3%A5%E5%B2%A9)  、 [明日方舟：维多利亚](https://steamcommunity.com/sharedfiles/filedetails/?id=3320609252&searchtext=%E7%BB%B4%E5%A4%9A%E5%88%A9%E4%BA%9A)
+
+类似之前的资源，我们也可以制作一个灾难对象。对于单位的定义，我这里不再赘述，可以直接跳转 [召唤指定灾难](./召唤指定灾难/) 去查看。
+
+###### **1、灾难的对象与方法**
+
+
+
+
+###### **2、XML定义**
+
+
+###### **3、刷新逻辑**
+
+
+###### **4、刷新灾难列表**
+
+
+###### **5、效果实现**
+
 
 #### 1.2 一些功能性函数
 
@@ -2455,7 +2482,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
             </Container>
             <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
                 <GridButton ID="SelectTab_FirstPage" Style="TabButton" Size="125,35">
-                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>       
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>   
                 </GridButton>
             </Stack>
         </Tab>
@@ -2551,7 +2578,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
             </Container>
             <Stack ID="TabButtons" Anchor="C,T" Offset="0,10" StackGrowth="Right">
                 <GridButton ID="SelectTab_EROSIONTab1" Style="TabButton" Size="125,35">
-                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>       
+                    <Label Style="FontFlair14" String="LOC_KIANA_FIRST_PAGE_TAB" Anchor="C,C" FontStyle="stroke" ColorSet="TopBarValueCS"/>   
                 </GridButton>
             </Stack>
         </Tab>
@@ -2581,7 +2608,7 @@ Events.LoadGameViewStateDone.Add(KianaLoadGameViewStateDone)
     <Instance Name="SelectCity">
         <Container ID="Cities" Size="1100,65">
         <Grid ID="city" Size="parent,parent" Offset="0,0" Texture="Religion_OverviewFrame" SliceCorner="15,15">
-            <Stack StackGrowth="Right" Anchor="L,C" Size="250,50"  StackPadding="20">      
+            <Stack StackGrowth="Right" Anchor="L,C" Size="250,50"  StackPadding="20">  
 			    <Image ID="CityPicture" Size="50,50" Offset="5,0" Anchor="L,C"/>  
                     <Label ID="CityForName" Style="FontFlair16" Anchor="L,C" Color0="208,212,217,255" Color1="0,0,0,50"/>
             </Stack>  
